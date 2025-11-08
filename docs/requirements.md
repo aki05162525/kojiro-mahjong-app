@@ -142,8 +142,9 @@
 
 **技術スタック**
 - フロントエンド：Next.js（既存プロジェクト構成に準拠）
-- データベース：TBD（検討中）
-- 認証：TBD（検討中）
+- データベース：Supabase (PostgreSQL)
+- 認証：Supabase Auth
+- ORM：Drizzle ORM
 
 **パフォーマンス**
 - ページ読み込み時間：3秒以内
