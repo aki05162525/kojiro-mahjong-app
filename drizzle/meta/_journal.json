@@ -8,6 +8,13 @@
       "when": 1762609150998,
       "tag": "0000_nasty_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762616704959,
+      "tag": "0001_aspiring_may_parker",
+      "breakpoints": true
     }
   ]
 }

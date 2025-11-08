@@ -95,13 +95,14 @@
     id: string,
     name: string,
     user_id: string | null,
+    role: 'admin' | 'scorer' | 'viewer' | null,
     created_at: string
   }>
 }
 ```
 
 **内部処理:**
-- 作成者を自動的に `league_members` に追加（role: admin）
+- リーグ作成者に対応するプレイヤーに自動的に `role: admin` を設定
 
 ---
 
@@ -147,11 +148,8 @@
   players: Array<{
     id: string,
     name: string,
-    user_id: string | null
-  }>,
-  members: Array<{
-    user_id: string,
-    role: 'admin' | 'scorer' | 'viewer'
+    user_id: string | null,
+    role: 'admin' | 'scorer' | 'viewer' | null
   }>
 }
 ```
@@ -246,12 +244,38 @@
 
 ---
 
-## 今後実装予定のAPI
+### `PATCH /api/leagues/:id/players/:playerId/role` 🔒
 
-### メンバー管理
-- `POST /api/leagues/:id/members` - メンバー招待
-- `PATCH /api/leagues/:id/members/:userId` - 権限変更
-- `DELETE /api/leagues/:id/members/:userId` - メンバー削除
+プレイヤーの権限を変更
+
+**権限要件:**
+- リーグの管理者（role: admin）のみ実行可能
+
+**リクエスト:**
+```typescript
+{
+  role: 'admin' | 'scorer' | 'viewer' | null
+}
+```
+
+**バリデーション:**
+- プレイヤーが `user_id` を持っている場合のみ権限を付与可能
+- `user_id` が null のプレイヤーに権限を設定しようとすると `400 Bad Request`
+
+**レスポンス（200 OK）:**
+```typescript
+{
+  id: string,
+  name: string,
+  user_id: string | null,
+  role: 'admin' | 'scorer' | 'viewer' | null,
+  updated_at: string
+}
+```
+
+---
+
+## 今後実装予定のAPI
 
 ### 節管理
 - 対局の単位（session）のCRUD
@@ -277,12 +301,16 @@
 - `user_id` は null でもOK（後で紐づけ可能）
 - 名前の編集のみ可能（表記ゆれ修正用）
 
-### メンバー（league_members）
-- リーグを**運営・管理するユーザー**
-- 必ずアプリのユーザー（`user_id` 必須）
-- 権限: `admin`, `scorer`, `viewer`
+### 権限管理（role）
+- プレイヤーに権限を付与することで、リーグ運営・管理が可能
+- `user_id` が設定されているプレイヤーのみ権限を付与可能
+- 権限の種類:
+  - `admin`: リーグの管理権限（設定変更、権限付与など）
+  - `scorer`: 点数入力権限
+  - `viewer`: 閲覧のみ
+  - `null`: 権限なし
 
 ---
 
 **作成日:** 2025-11-08
-**最終更新:** 2025-11-08
+**最終更新:** 2025-11-09

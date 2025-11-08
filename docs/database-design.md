@@ -4,12 +4,11 @@
 
 1. users - ユーザー
 2. leagues - リーグ
-3. league_members - リーグメンバー・ロール管理
-4. players - プレイヤー
-5. sessions - 節
-6. tables - 卓
-7. scores - 点数記録
-8. link_requests - プレイヤーとユーザーの紐づけリクエスト
+3. players - プレイヤー
+4. sessions - 節
+5. tables - 卓
+6. scores - 点数記録
+7. link_requests - プレイヤーとユーザーの紐づけリクエスト
 
 ---
 
@@ -67,9 +66,9 @@ description
   説明: リーグの説明
 
 status
-  型: enum('active', 'completed')
+  型: enum('active', 'completed', 'deleted')
   制約: NOT NULL, DEFAULT 'active'
-  説明: リーグのステータス（進行中/終了）
+  説明: リーグのステータス（進行中/終了/削除済み）
 
 created_by
   型: uuid
@@ -92,51 +91,7 @@ updated_at
 
 ---
 
-## 3. league_membersテーブル
-
-リーグごとのメンバーとロールを管理するテーブル。
-
-```
-id
-  型: uuid
-  制約: PRIMARY KEY
-  説明: ID
-
-league_id
-  型: uuid
-  制約: NOT NULL, FOREIGN KEY (leagues.id)
-  説明: リーグID
-
-user_id
-  型: uuid
-  制約: NOT NULL, FOREIGN KEY (users.id)
-  説明: ユーザーID
-
-role
-  型: enum('admin', 'scorer', 'viewer')
-  制約: NOT NULL
-  説明: このリーグでのロール
-
-created_at
-  型: timestamp
-  制約: NOT NULL, DEFAULT NOW()
-  説明: 作成日時
-
-updated_at
-  型: timestamp
-  制約: NOT NULL, DEFAULT NOW()
-  説明: 更新日時
-```
-
-**制約:**
-- (league_id, user_id) で UNIQUE制約
-
-**リレーション:**
-- leagues (1) ─────< (N) league_members (N) >───── (1) users
-
----
-
-## 4. playersテーブル
+## 3. playersテーブル
 
 プレイヤー（対局参加者）を管理するテーブル。
 
@@ -161,6 +116,11 @@ user_id
   制約: NULL, FOREIGN KEY (users.id)
   説明: 紐づいているユーザーID
 
+role
+  型: enum('admin', 'scorer', 'viewer')
+  制約: NULL
+  説明: このリーグでのロール（権限）
+
 created_at
   型: timestamp
   制約: NOT NULL, DEFAULT NOW()
@@ -176,13 +136,20 @@ updated_at
 - user_id が NULL → players.name を表示
 - user_id に値あり → users.name を表示（JOIN必要）
 
+**ロールの扱い:**
+- user_id が NULL の場合、role も NULL（ゲストプレイヤー）
+- ユーザーと紐づけた後、権限を付与可能
+- admin: リーグの管理権限
+- scorer: 点数入力権限
+- viewer: 閲覧のみ
+
 **リレーション:**
 - leagues (1) ─────< (N) players
 - users (1) ─────< (N) players
 
 ---
 
-## 5. sessionsテーブル
+## 4. sessionsテーブル
 
 節（対局日）を管理するテーブル。
 
@@ -221,7 +188,7 @@ updated_at
 
 ---
 
-## 6. tablesテーブル
+## 5. tablesテーブル
 
 卓を管理するテーブル。
 
@@ -270,7 +237,7 @@ updated_at
 
 ---
 
-## 7. scoresテーブル
+## 6. scoresテーブル
 
 点数記録を管理するテーブル。
 
@@ -346,7 +313,7 @@ updated_at
 
 ---
 
-## 8. link_requestsテーブル
+## 7. link_requestsテーブル
 
 プレイヤーとユーザーの紐づけリクエストを管理するテーブル。
 
@@ -397,8 +364,6 @@ updated_at
 ```
 users (1) ─────< (N) leagues
   │                    │
-  │                    └─< (N) league_members (N) >─── (1) users
-  │                    │
   │                    └─< (N) players
   │                    │        │
   └─< (N) players ─────┘        │
@@ -412,4 +377,4 @@ leagues (1) ─────< (N) sessions (1) ─────< (N) tables ──
 
 ---
 
-**最終更新:** 2025-11-08
+**最終更新:** 2025-11-09
