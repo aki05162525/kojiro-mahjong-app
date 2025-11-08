@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import { pgEnum, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
 import { leaguesTable } from './leagues'
 import { usersTable } from './users'
@@ -22,3 +23,14 @@ export const leagueMembersTable = pgTable(
     leagueUserUnique: unique().on(table.leagueId, table.userId),
   }),
 )
+
+export const leagueMembersRelations = relations(leagueMembersTable, ({ one }) => ({
+  league: one(leaguesTable, {
+    fields: [leagueMembersTable.leagueId],
+    references: [leaguesTable.id],
+  }),
+  user: one(usersTable, {
+    fields: [leagueMembersTable.userId],
+    references: [usersTable.id],
+  }),
+}))

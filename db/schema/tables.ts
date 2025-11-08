@@ -1,5 +1,7 @@
+import { relations } from 'drizzle-orm'
 import { integer, pgEnum, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
 import { sessionsTable } from './sessions'
+import { scoresTable } from './scores'
 
 // table_typeのenum定義
 export const tableTypeEnum = pgEnum('table_type', ['first', 'upper', 'lower'])
@@ -20,3 +22,11 @@ export const tablesTable = pgTable(
     sessionTableUnique: unique().on(table.sessionId, table.tableNumber),
   }),
 )
+
+export const tablesRelations = relations(tablesTable, ({ one, many }) => ({
+  session: one(sessionsTable, {
+    fields: [tablesTable.sessionId],
+    references: [sessionsTable.id],
+  }),
+  scores: many(scoresTable),
+}))

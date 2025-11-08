@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import { pgEnum, pgTable, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { playersTable } from './players'
 import { usersTable } from './users'
@@ -21,3 +22,14 @@ export const linkRequestsTable = pgTable('link_requests', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
+
+export const linkRequestsRelations = relations(linkRequestsTable, ({ one }) => ({
+  player: one(playersTable, {
+    fields: [linkRequestsTable.playerId],
+    references: [playersTable.id],
+  }),
+  user: one(usersTable, {
+    fields: [linkRequestsTable.userId],
+    references: [usersTable.id],
+  }),
+}))
