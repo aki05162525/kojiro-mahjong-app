@@ -44,13 +44,18 @@
 {
   name: string,              // 必須、1-20文字
   description?: string,      // 任意
-  players?: Array<{          // 任意（推奨: 16人）
+  players: Array<{           // 必須、8人または16人
     name: string             // 必須、1-20文字
   }>
 }
 ```
 
-**例:**
+**バリデーション:**
+- `players` は必須
+- `players.length === 8 || players.length === 16`
+- それ以外は `400 Bad Request`
+
+**例（16人リーグ）:**
 ```json
 {
   "name": "2025年春リーグ",
@@ -59,7 +64,19 @@
     { "name": "山田太郎" },
     { "name": "鈴木次郎" },
     { "name": "佐藤三郎" },
-    { "name": "田中四郎" }
+    { "name": "田中四郎" },
+    { "name": "伊藤五郎" },
+    { "name": "渡辺六郎" },
+    { "name": "加藤七郎" },
+    { "name": "中村八郎" },
+    { "name": "小林九郎" },
+    { "name": "吉田十郎" },
+    { "name": "高橋一郎" },
+    { "name": "松本二郎" },
+    { "name": "木村三郎" },
+    { "name": "林四郎" },
+    { "name": "清水五郎" },
+    { "name": "森六郎" }
   ]
 }
 ```
@@ -200,12 +217,36 @@
 
 ---
 
-## 今後実装予定のAPI
+## プレイヤー管理API
 
-### プレイヤー管理
-- `POST /api/leagues/:id/players` - プレイヤー追加
-- `PATCH /api/leagues/:id/players/:playerId` - プレイヤー更新
-- `DELETE /api/leagues/:id/players/:playerId` - プレイヤー削除
+### `PATCH /api/leagues/:id/players/:playerId` 🔒
+
+プレイヤー名を更新（表記ゆれ修正用）
+
+**注意:**
+- プレイヤーの追加・削除は不可（リーグ作成時に8人または16人で確定）
+- 名前の編集のみ可能
+
+**リクエスト:**
+```typescript
+{
+  name: string  // 必須、1-20文字
+}
+```
+
+**レスポンス（200 OK）:**
+```typescript
+{
+  id: string,
+  name: string,
+  user_id: string | null,
+  updated_at: string
+}
+```
+
+---
+
+## 今後実装予定のAPI
 
 ### メンバー管理
 - `POST /api/leagues/:id/members` - メンバー招待
@@ -230,9 +271,11 @@
 ## 用語の整理
 
 ### プレイヤー（players）
-- リーグで**麻雀を打つ人**（通常16人）
+- リーグで**麻雀を打つ人**（8人または16人）
+- リーグ作成時に人数確定、途中での追加・削除は不可
 - アプリのユーザーである必要はない
 - `user_id` は null でもOK（後で紐づけ可能）
+- 名前の編集のみ可能（表記ゆれ修正用）
 
 ### メンバー（league_members）
 - リーグを**運営・管理するユーザー**
