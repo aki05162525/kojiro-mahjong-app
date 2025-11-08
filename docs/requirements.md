@@ -142,6 +142,7 @@
 
 **技術スタック**
 - フロントエンド：Next.js（既存プロジェクト構成に準拠）
+- バックエンド：Hono
 - データベース：Supabase (PostgreSQL)
 - 認証：Supabase Auth
 - ORM：Drizzle ORM
