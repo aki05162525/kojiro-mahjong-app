@@ -1,9 +1,9 @@
 import { relations } from 'drizzle-orm'
 import { pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
-import { leaguesTable } from './leagues'
 import { leagueMembersTable } from './league-members'
-import { playersTable } from './players'
+import { leaguesTable } from './leagues'
 import { linkRequestsTable } from './link-requests'
+import { playersTable } from './players'
 
 export const usersTable = pgTable('users', {
   id: uuid('id').primaryKey(),

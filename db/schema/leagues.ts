@@ -1,9 +1,9 @@
 import { relations } from 'drizzle-orm'
 import { pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
-import { usersTable } from './users'
 import { leagueMembersTable } from './league-members'
 import { playersTable } from './players'
 import { sessionsTable } from './sessions'
+import { usersTable } from './users'
 
 export const leagueStatusEnum = pgEnum('league_status', ['active', 'completed'])
 
