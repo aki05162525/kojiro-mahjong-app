@@ -3,7 +3,7 @@ pre-commit:
   commands:
     biome:
       glob: "**/*.{ts,tsx,js,jsx,cts,mts,cjs,mjs,json,jsonc,md,mdx}"
-      run: bun run lint:staged -- {files}
+      run: bun run lint:fix -- {files}
 
 pre-push:
   commands:

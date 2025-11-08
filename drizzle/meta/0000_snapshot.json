@@ -55,12 +55,8 @@
           "name": "league_members_league_id_leagues_id_fk",
           "tableFrom": "league_members",
           "tableTo": "leagues",
-          "columnsFrom": [
-            "league_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["league_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -68,12 +64,8 @@
           "name": "league_members_user_id_users_id_fk",
           "tableFrom": "league_members",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -83,10 +75,7 @@
         "league_members_league_id_user_id_unique": {
           "name": "league_members_league_id_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "league_id",
-            "user_id"
-          ]
+          "columns": ["league_id", "user_id"]
         }
       },
       "policies": {},
@@ -151,12 +140,8 @@
           "name": "leagues_created_by_users_id_fk",
           "tableFrom": "leagues",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -219,12 +204,8 @@
           "name": "link_requests_player_id_players_id_fk",
           "tableFrom": "link_requests",
           "tableTo": "players",
-          "columnsFrom": [
-            "player_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["player_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -232,12 +213,8 @@
           "name": "link_requests_user_id_users_id_fk",
           "tableFrom": "link_requests",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -298,12 +275,8 @@
           "name": "players_league_id_leagues_id_fk",
           "tableFrom": "players",
           "tableTo": "leagues",
-          "columnsFrom": [
-            "league_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["league_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -311,12 +284,8 @@
           "name": "players_user_id_users_id_fk",
           "tableFrom": "players",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -408,12 +377,8 @@
           "name": "scores_table_id_tables_id_fk",
           "tableFrom": "scores",
           "tableTo": "tables",
-          "columnsFrom": [
-            "table_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["table_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -421,12 +386,8 @@
           "name": "scores_player_id_players_id_fk",
           "tableFrom": "scores",
           "tableTo": "players",
-          "columnsFrom": [
-            "player_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["player_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -436,18 +397,12 @@
         "scores_table_id_player_id_unique": {
           "name": "scores_table_id_player_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "table_id",
-            "player_id"
-          ]
+          "columns": ["table_id", "player_id"]
         },
         "scores_table_id_wind_unique": {
           "name": "scores_table_id_wind_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "table_id",
-            "wind"
-          ]
+          "columns": ["table_id", "wind"]
         }
       },
       "policies": {},
@@ -498,12 +453,8 @@
           "name": "sessions_league_id_leagues_id_fk",
           "tableFrom": "sessions",
           "tableTo": "leagues",
-          "columnsFrom": [
-            "league_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["league_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -513,10 +464,7 @@
         "sessions_league_id_session_number_unique": {
           "name": "sessions_league_id_session_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "league_id",
-            "session_number"
-          ]
+          "columns": ["league_id", "session_number"]
         }
       },
       "policies": {},
@@ -574,12 +522,8 @@
           "name": "tables_session_id_sessions_id_fk",
           "tableFrom": "tables",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -589,10 +533,7 @@
         "tables_session_id_table_number_unique": {
           "name": "tables_session_id_table_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "session_id",
-            "table_number"
-          ]
+          "columns": ["session_id", "table_number"]
         }
       },
       "policies": {},
@@ -643,9 +584,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -657,47 +596,27 @@
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "admin",
-        "scorer",
-        "viewer"
-      ]
+      "values": ["admin", "scorer", "viewer"]
     },
     "public.league_status": {
       "name": "league_status",
       "schema": "public",
-      "values": [
-        "active",
-        "completed"
-      ]
+      "values": ["active", "completed"]
     },
     "public.link_request_status": {
       "name": "link_request_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.wind": {
       "name": "wind",
       "schema": "public",
-      "values": [
-        "east",
-        "south",
-        "west",
-        "north"
-      ]
+      "values": ["east", "south", "west", "north"]
     },
     "public.table_type": {
       "name": "table_type",
       "schema": "public",
-      "values": [
-        "first",
-        "upper",
-        "lower"
-      ]
+      "values": ["first", "upper", "lower"]
     }
   },
   "schemas": {},
