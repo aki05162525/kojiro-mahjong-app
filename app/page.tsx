@@ -13,7 +13,9 @@ export default function Home() {
     fetchData()
   }, [])
 
-  if (!message) return <p>Loading...</p>
+  if (!message) {
+    return <p>Loading...</p>
+  }
 
   return <p>{message}</p>
 }
