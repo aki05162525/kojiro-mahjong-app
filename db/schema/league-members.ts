@@ -1,4 +1,4 @@
-import { pgTable, uuid, pgEnum, timestamp, unique } from 'drizzle-orm/pg-core'
+import { pgEnum, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
 import { leaguesTable } from './leagues'
 import { usersTable } from './users'
 

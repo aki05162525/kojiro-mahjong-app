@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, pgEnum, timestamp } from 'drizzle-orm/pg-core'
+import { pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { usersTable } from './users'
 
 export const leagueStatusEnum = pgEnum('league_status', ['active', 'completed'])

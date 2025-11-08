@@ -1,4 +1,4 @@
-import { pgTable, uuid, integer, timestamp, unique } from 'drizzle-orm/pg-core'
+import { integer, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
 import { leaguesTable } from './leagues'
 
 export const sessionsTable = pgTable(
