@@ -1,6 +1,5 @@
 import { relations } from 'drizzle-orm'
 import { pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
-import { leagueMembersTable } from './league-members'
 import { leaguesTable } from './leagues'
 import { linkRequestsTable } from './link-requests'
 import { playersTable } from './players'
@@ -15,7 +14,6 @@ export const usersTable = pgTable('users', {
 
 export const usersRelations = relations(usersTable, ({ many }) => ({
   createdLeagues: many(leaguesTable),
-  leagueMembers: many(leagueMembersTable),
   players: many(playersTable),
   linkRequests: many(linkRequestsTable),
 }))

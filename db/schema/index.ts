@@ -1,4 +1,3 @@
-export * from './league-members'
 export * from './leagues'
 export * from './link-requests'
 export * from './players'

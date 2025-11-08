@@ -1,11 +1,10 @@
 import { relations } from 'drizzle-orm'
 import { pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
-import { leagueMembersTable } from './league-members'
 import { playersTable } from './players'
 import { sessionsTable } from './sessions'
 import { usersTable } from './users'
 
-export const leagueStatusEnum = pgEnum('league_status', ['active', 'completed'])
+export const leagueStatusEnum = pgEnum('league_status', ['active', 'completed', 'deleted'])
 
 export const leaguesTable = pgTable('leagues', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -24,7 +23,6 @@ export const leaguesRelations = relations(leaguesTable, ({ one, many }) => ({
     fields: [leaguesTable.createdBy],
     references: [usersTable.id],
   }),
-  members: many(leagueMembersTable),
   players: many(playersTable),
   sessions: many(sessionsTable),
 }))
