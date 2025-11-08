@@ -29,7 +29,7 @@ email
   説明: メールアドレス
 
 name
-  型: varchar(100)
+  型: varchar(50)
   制約: NOT NULL
   説明: ユーザー名（表示用）
 
@@ -57,7 +57,7 @@ id
   説明: リーグID
 
 name
-  型: varchar(100)
+  型: varchar(20)
   制約: NOT NULL
   説明: リーグ名（例：2025年1月リーグ）
 
@@ -152,7 +152,7 @@ league_id
   説明: 所属リーグID
 
 name
-  型: varchar(100)
+  型: varchar(20)
   制約: NOT NULL
   説明: プレイヤー名（ユーザー未紐づけ時のみ使用）
 
