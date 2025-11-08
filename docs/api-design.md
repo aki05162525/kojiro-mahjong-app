@@ -275,20 +275,44 @@
 
 ---
 
+## 節管理API
+
+### `POST /api/leagues/:id/sessions/next` 🔒
+次の節を開始（自動生成）
+
+**内部処理:**
+- 第1節：全卓を`first`、プレイヤーをランダム割り当て
+- 第2節以降：前節の結果から上位卓/下位卓を決定し、プレイヤーを割り振り
+
+### `GET /api/leagues/:id/sessions` 🔒
+節一覧を取得
+
+### `GET /api/sessions/:sessionId` 🔒
+節詳細を取得（卓情報含む）
+
+---
+
+## 点数管理API
+
+### `POST /api/tables/:tableId/scores` 🔒
+点数を入力
+
+### `PATCH /api/scores/:scoreId` 🔒
+点数を修正
+
+---
+
+## ランキングAPI
+
+### `GET /api/leagues/:id/ranking` 🔒
+リーグのランキングを取得
+
+---
+
 ## 今後実装予定のAPI
 
-### 節管理
-- 対局の単位（session）のCRUD
-
-### 卓・点数管理
-- 卓（table）のCRUD
-- 点数入力・計算
-
-### ランキング
-- `GET /api/leagues/:id/ranking` - ランキング取得
-
 ### プレイヤー紐づけリクエスト
-- ユーザーとプレイヤーの紐づけ申請
+- ユーザーとプレイヤーの紐づけ申請・承認
 
 ---
 
