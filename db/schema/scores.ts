@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import { decimal, integer, pgEnum, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
 import { playersTable } from './players'
 import { tablesTable } from './tables'
@@ -29,3 +30,14 @@ export const scoresTable = pgTable(
     tableWindUnique: unique().on(table.tableId, table.wind),
   }),
 )
+
+export const scoresRelations = relations(scoresTable, ({ one }) => ({
+  table: one(tablesTable, {
+    fields: [scoresTable.tableId],
+    references: [tablesTable.id],
+  }),
+  player: one(playersTable, {
+    fields: [scoresTable.playerId],
+    references: [playersTable.id],
+  }),
+}))

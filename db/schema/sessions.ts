@@ -1,5 +1,7 @@
+import { relations } from 'drizzle-orm'
 import { integer, pgTable, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
 import { leaguesTable } from './leagues'
+import { tablesTable } from './tables'
 
 export const sessionsTable = pgTable(
   'sessions',
@@ -16,3 +18,11 @@ export const sessionsTable = pgTable(
     leagueSessionUnique: unique().on(table.leagueId, table.sessionNumber),
   }),
 )
+
+export const sessionsRelations = relations(sessionsTable, ({ one, many }) => ({
+  league: one(leaguesTable, {
+    fields: [sessionsTable.leagueId],
+    references: [leaguesTable.id],
+  }),
+  tables: many(tablesTable),
+}))
