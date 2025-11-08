@@ -14,4 +14,4 @@ bun run format     # biome format --write
 
 ### Git hooks
 
-Lefthook runs `bun run lint:staged` on pre-commit and `bun run lint` on pre-push. Hooks are installed automatically via the `prepare` script, but you can re-install manually with `bunx --bun lefthook install`.
+Lefthook runs `bun run lint:staged` on pre-commit (only when staged files match `**/*.{ts,tsx,js,jsx,cts,mts,cjs,mjs,json,jsonc,md,mdx}`) and `bun run lint` on pre-push. Hooks are installed automatically via the `prepare` script, but you can re-install manually with `bunx --bun lefthook install`.

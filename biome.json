@@ -7,7 +7,8 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false,
+    "ignoreUnknown": true,
+    "includes": ["**/*.{ts,tsx,js,jsx,cts,mts,cjs,mjs}", "**/*.{json,jsonc}", "**/*.{md,mdx}"],
     "maxSize": 1048576
   },
   "formatter": {
