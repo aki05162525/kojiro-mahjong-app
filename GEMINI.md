@@ -11,7 +11,7 @@ The project is a full-stack application built with a modern TypeScript-based sta
 - **Backend API**: [Hono.js](https://hono.js.org/) running on Vercel Functions via the Next.js API routes (`/api`).
 - **Database ORM**: [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access.
 - **Database**: [PostgreSQL](https://www.postgresql.org/), configured via `drizzle.config.ts` and a `DATABASE_URL` environment variable.
-- **Linting & Formatting**: [Biome](https://biomejs.dev/) is used for code formatting and linting, supplemented by ESLint for Next.js specific rules.
+- **Linting & Formatting**: [Biome](https://biomejs.dev/) is used for code formatting and linting.
 - **Package Manager**: The presence of `bun.lock` indicates that [Bun](https://bun.sh/) is the preferred package manager.
 
 The database schema is extensively defined in the `db/schema/` directory, covering concepts like leagues, users, players, sessions, and scores.
