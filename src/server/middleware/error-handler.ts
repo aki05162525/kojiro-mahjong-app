@@ -24,19 +24,6 @@ export const errorHandler = (err: Error, c: Context) => {
     )
   }
 
-  // Zodバリデーションエラーの場合
-  // (@hono/zod-validatorが投げるエラー)
-  if (err.name === 'ValidationError') {
-    return c.json<ErrorResponse>(
-      {
-        error: 'ValidationError',
-        message: err.message,
-        statusCode: 400,
-      },
-      400,
-    )
-  }
-
   // その他の予期しないエラー
   return c.json<ErrorResponse>(
     {
