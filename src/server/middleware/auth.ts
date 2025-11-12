@@ -17,6 +17,7 @@ export type AuthContext = {
 // 認証ミドルウェア
 export const authMiddleware = createMiddleware<AuthContext>(async (c, next) => {
   // Authorizationヘッダーからトークン取得
+  // トークンチェックの処理
   const authHeader = c.req.header('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
     return c.json({ error: 'Unauthorized', message: '認証が必要です' }, 401)
