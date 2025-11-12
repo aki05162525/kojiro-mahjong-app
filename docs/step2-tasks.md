@@ -1,8 +1,8 @@
-# ステップ2: リーグ作成API - 実装タスク
+# ステップ2: リーグ作成API - 実装タスク（段階的アプローチ）
 
 Issue #22のステップ2を自分で実装するためのガイド
 
-**最重要: POST /api/leagues エンドポイントの完全実装**
+**アプローチ**: 最小限の機能で動作確認 → 機能追加
 
 ---
 
@@ -15,9 +15,15 @@ Issue #22のステップ2を自分で実装するためのガイド
 
 ---
 
-## タスク1: バリデータ作成
+## フェーズ1: リーグ作成APIのみ実装（動作確認まで）
 
-### ファイル: `src/server/validators/leagues.validator.ts`
+まずは **POST /api/leagues** 1つだけを実装して、エンドツーエンドで動作確認します。
+
+---
+
+## タスク1: バリデータ作成（リーグ作成のみ）
+
+### ファイル: `src/server/validators/leagues.ts`
 
 ### 必要なパッケージ
 
@@ -26,10 +32,6 @@ bun add zod @hono/zod-validator
 ```
 
 ### 実装内容
-
-リクエストボディのバリデーションスキーマを定義
-
-### 実装例
 
 ```typescript
 import { z } from 'zod'
@@ -58,55 +60,36 @@ export const createLeagueSchema = z.object({
       'プレイヤーは8人または16人で指定してください'
     ),
 })
-
-// リーグ更新リクエストのバリデーション（オプション）
-export const updateLeagueSchema = z.object({
-  name: z.string().min(1).max(20).optional(),
-  description: z.string().optional(),
-})
-
-// ステータス変更リクエストのバリデーション（オプション）
-export const updateLeagueStatusSchema = z.object({
-  status: z.enum(['active', 'completed', 'deleted']),
-})
 ```
 
-### 実装のポイント
+### 学習ポイント
 
-1. **プレイヤー数の厳密なバリデーション**
-   - `.refine()` を使って8人または16人のみ許可
-   - `min(8)` と `max(16)` でまず範囲を制限
-   - さらに `.refine()` で正確に8人または16人をチェック
+1. **Zodの基本的な使い方**
+   - `.string()`, `.min()`, `.max()` などのチェーン
+   - `.optional()` でオプショナルフィールド
 
-2. **エラーメッセージ**
-   - 日本語でユーザーフレンドリーなメッセージ
-   - フロントエンドでそのまま表示可能
-
-3. **型推論**
-   - `z.infer<typeof createLeagueSchema>` で型を取得可能
+2. **配列のバリデーション**
+   - `.array(schema)` で配列の各要素を検証
+   - `.refine()` でカスタムロジック（8人または16人）
 
 ### 📚 公式ドキュメント
 
 - [Zod: Getting Started](https://zod.dev/?id=basic-usage)
 - [Zod: Array refinements](https://zod.dev/?id=refine)
-- [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
 
 ---
 
-## タスク2: リポジトリ作成
+## タスク2: リポジトリ作成（リーグ作成のみ）
 
-### ファイル: `src/server/repositories/leagues.repository.ts`
+### ファイル: `src/server/repositories/leagues.ts`
 
 ### 実装内容
 
-データベース操作を担当するリポジトリ層
-
-### 実装例
+トランザクションでリーグとプレイヤーを同時に作成
 
 ```typescript
 import { db } from '@/db'
 import { leaguesTable, playersTable } from '@/db/schema'
-import { eq } from 'drizzle-orm'
 
 // リーグ作成（トランザクション）
 export async function createLeagueWithPlayers(data: {
@@ -135,7 +118,10 @@ export async function createLeagueWithPlayers(data: {
       role: index === 0 ? ('admin' as const) : null,
     }))
 
-    const players = await tx.insert(playersTable).values(playersData).returning()
+    const players = await tx
+      .insert(playersTable)
+      .values(playersData)
+      .returning()
 
     return {
       ...league,
@@ -143,6 +129,340 @@ export async function createLeagueWithPlayers(data: {
     }
   })
 }
+```
+
+### 学習ポイント
+
+1. **トランザクションの使い方**
+   - `db.transaction(async (tx) => { ... })`
+   - トランザクション内では `tx` を使う
+
+2. **INSERT操作**
+   - `insert(table).values(data).returning()` の基本構文
+   - `.returning()` で挿入したデータを取得
+
+3. **配列操作**
+   - `players.map()` でデータを変換
+   - `index === 0` で最初のプレイヤーに管理者権限を付与
+
+4. **原子性の保証**
+   - どちらかが失敗したら両方ロールバック
+
+### 📚 公式ドキュメント
+
+- [Drizzle ORM: Transactions](https://orm.drizzle.team/docs/transactions)
+- [Drizzle ORM: Insert](https://orm.drizzle.team/docs/insert)
+
+---
+
+## タスク3: サービス作成（リーグ作成のみ）
+
+### ファイル: `src/server/services/leagues.ts`
+
+### 実装内容
+
+```typescript
+import * as leaguesRepo from '../repositories/leagues'
+
+// リーグ作成
+export async function createLeague(
+  userId: string,
+  data: {
+    name: string
+    description?: string
+    players: Array<{ name: string }>
+  }
+) {
+  return await leaguesRepo.createLeagueWithPlayers({
+    ...data,
+    createdBy: userId,
+  })
+}
+```
+
+### 学習ポイント
+
+1. **サービス層の役割**
+   - ビジネスロジックを担当
+   - リポジトリ層を呼び出してデータ操作
+
+2. **認証情報の受け渡し**
+   - `userId` を受け取って `createdBy` として渡す
+
+---
+
+## タスク4: ルート作成（リーグ作成のみ）
+
+### ファイル: `src/server/routes/leagues.ts`
+
+### 実装内容
+
+```typescript
+import { zValidator } from '@hono/zod-validator'
+import { Hono } from 'hono'
+import type { AuthContext } from '../middleware/auth'
+import { authMiddleware } from '../middleware/auth'
+import * as leaguesService from '../services/leagues'
+import { createLeagueSchema } from '../validators/leagues'
+
+const app = new Hono<AuthContext>()
+
+// すべてのルートに認証ミドルウェアを適用
+app.use('*', authMiddleware)
+
+// POST /api/leagues - リーグ作成
+app.post('/', zValidator('json', createLeagueSchema), async (c) => {
+  const userId = c.get('userId')
+  const data = c.req.valid('json')
+
+  const league = await leaguesService.createLeague(userId, data)
+
+  return c.json(league, 201)
+})
+
+export default app
+```
+
+### 学習ポイント
+
+1. **Honoの基本**
+   - `new Hono<AuthContext>()` で型付きアプリ作成
+   - `app.use('*', middleware)` で全ルートにミドルウェア適用
+
+2. **バリデーション**
+   - `zValidator('json', schema)` でリクエストボディを検証
+   - `c.req.valid('json')` で検証済みデータを取得
+
+3. **認証情報の取得**
+   - `c.get('userId')` でミドルウェアから渡されたユーザーIDを取得
+
+4. **レスポンス**
+   - `c.json(data, statusCode)` でJSONレスポンス
+   - 作成は `201 Created`
+
+### 📚 公式ドキュメント
+
+- [Hono: Routing](https://hono.dev/docs/api/routing)
+- [Hono: Context](https://hono.dev/docs/api/context)
+- [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
+
+---
+
+## タスク5: AppTypeエクスポート
+
+### ファイル: `src/server/routes/index.ts`
+
+### 実装内容
+
+**重要**: Hono RPCで型推論を有効にするための必須ステップ
+
+```typescript
+import { Hono } from 'hono'
+import leaguesRoutes from './leagues'
+
+const app = new Hono().basePath('/api')
+
+// ★すべてのルートを1つの式でチェーン（型推論に必須）
+const routes = app.route('/leagues', leaguesRoutes)
+
+// ★AppTypeをエクスポート（Hono RPCで使用）
+export type AppType = typeof routes
+
+export default app
+```
+
+### 学習ポイント
+
+1. **型推論のポイント**
+   - `app.route()` を1つの式でチェーン
+   - `typeof routes` で型をエクスポート
+
+2. **将来の拡張**
+   ```typescript
+   const routes = app
+     .route('/leagues', leaguesRoutes)
+     .route('/sessions', sessionsRoutes)  // 後で追加
+   ```
+
+### 📚 公式ドキュメント
+
+- [Hono RPC](https://hono.dev/docs/guides/rpc)
+
+---
+
+## タスク6: Honoアプリに統合
+
+### ファイル: `app/api/[...route]/route.ts`
+
+### 実装内容
+
+既存の実装を更新して、ルートを統合
+
+```typescript
+import { handle } from 'hono/vercel'
+import app from '@/src/server/routes'
+
+export const GET = handle(app)
+export const POST = handle(app)
+export const PATCH = handle(app)
+export const DELETE = handle(app)
+```
+
+### 学習ポイント
+
+- Next.js App RouterとHonoの統合
+- `handle()` で各HTTPメソッドをハンドリング
+
+---
+
+## フェーズ1完了チェックリスト
+
+- [ ] `src/server/validators/leagues.ts` が実装された
+- [ ] `src/server/repositories/leagues.ts` が実装された
+- [ ] `src/server/services/leagues.ts` が実装された
+- [ ] `src/server/routes/leagues.ts` が実装された
+- [ ] `src/server/routes/index.ts` が実装され、AppTypeがエクスポートされた
+- [ ] `app/api/[...route]/route.ts` にルートが統合された
+- [ ] 型エラーがなく、`bun run lint` が通る
+
+---
+
+## 動作確認
+
+### 1. サーバー起動
+
+```bash
+bun run dev
+```
+
+### 2. Supabaseでユーザー作成
+
+ブラウザで `http://localhost:3000` を開き、Supabase Authでユーザー登録
+
+### 3. アクセストークン取得
+
+ブラウザの開発者ツールで以下を実行：
+
+```javascript
+// Supabaseクライアントがある場合
+const { data } = await supabase.auth.getSession()
+console.log(data.session.access_token)
+```
+
+または、Application > Cookies > `sb-*-auth-token` の値をコピー
+
+### 4. APIテスト
+
+```bash
+curl -X POST http://localhost:3000/api/leagues \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "テストリーグ",
+    "description": "動作確認用",
+    "players": [
+      {"name": "プレイヤー1"},
+      {"name": "プレイヤー2"},
+      {"name": "プレイヤー3"},
+      {"name": "プレイヤー4"},
+      {"name": "プレイヤー5"},
+      {"name": "プレイヤー6"},
+      {"name": "プレイヤー7"},
+      {"name": "プレイヤー8"}
+    ]
+  }'
+```
+
+### 5. 期待される結果
+
+**成功レスポンス（201 Created）**:
+```json
+{
+  "id": "...",
+  "name": "テストリーグ",
+  "description": "動作確認用",
+  "status": "active",
+  "createdBy": "...",
+  "createdAt": "...",
+  "updatedAt": "...",
+  "players": [
+    {
+      "id": "...",
+      "name": "プレイヤー1",
+      "userId": "...",  // ← あなたのユーザーID
+      "role": "admin",  // ← 自動的に付与される
+      "createdAt": "..."
+    },
+    {
+      "id": "...",
+      "name": "プレイヤー2",
+      "userId": null,
+      "role": null,
+      "createdAt": "..."
+    },
+    ...
+  ]
+}
+```
+
+### 6. Drizzle Studioで確認
+
+```bash
+bun run db:studio
+```
+
+`leagues` テーブルと `players` テーブルにデータが入っているか確認
+
+---
+
+## トラブルシューティング
+
+### 401 Unauthorized
+
+- トークンが正しいか確認
+- トークンの有効期限を確認
+- `.env` の `NEXT_PUBLIC_SUPABASE_URL` と `NEXT_PUBLIC_SUPABASE_ANON_KEY` が正しいか確認
+
+### 400 Bad Request
+
+- リクエストボディが正しいか確認
+- プレイヤー数が8人または16人か確認
+
+### 500 Internal Server Error
+
+- サーバーログを確認
+- データベース接続を確認（`bun run db:studio` で接続できるか）
+
+---
+
+## ✅ フェーズ1が成功したら...
+
+おめでとうございます！最小限の機能が動きました。
+
+次は **フェーズ2** に進みます：追加エンドポイントの実装
+
+---
+
+## フェーズ2: 残りのエンドポイント追加
+
+フェーズ1が動作確認できたら、以下の順番で機能を追加していきます。
+
+---
+
+## タスク7: リーグ一覧取得の追加
+
+### 実装するエンドポイント
+
+**GET /api/leagues** - 自分が参加しているリーグ一覧
+
+### 7-1: リポジトリに関数追加
+
+`src/server/repositories/leagues.ts` に追加：
+
+```typescript
+import { eq } from 'drizzle-orm'
+
+// createLeagueWithPlayers の下に追加
 
 // リーグ一覧取得（ユーザーが参加しているリーグ）
 export async function findLeaguesByUserId(userId: string) {
@@ -160,6 +480,71 @@ export async function findLeaguesByUserId(userId: string) {
     .innerJoin(playersTable, eq(leaguesTable.id, playersTable.leagueId))
     .where(eq(playersTable.userId, userId))
 }
+```
+
+### 7-2: サービスに関数追加
+
+`src/server/services/leagues.ts` に追加：
+
+```typescript
+// createLeague の下に追加
+
+// リーグ一覧取得
+export async function getLeaguesByUserId(userId: string) {
+  const leagues = await leaguesRepo.findLeaguesByUserId(userId)
+  return { leagues }
+}
+```
+
+### 7-3: ルートに追加
+
+`src/server/routes/leagues.ts` の `app.post()` の下に追加：
+
+```typescript
+// GET /api/leagues - リーグ一覧
+app.get('/', async (c) => {
+  const userId = c.get('userId')
+  const result = await leaguesService.getLeaguesByUserId(userId)
+  return c.json(result, 200)
+})
+```
+
+### 7-4: 動作確認
+
+```bash
+curl http://localhost:3000/api/leagues \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+**期待される結果**:
+```json
+{
+  "leagues": [
+    {
+      "id": "...",
+      "name": "テストリーグ",
+      "description": "動作確認用",
+      "status": "active",
+      "createdBy": "...",
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ]
+}
+```
+
+---
+
+## タスク8: リーグ詳細取得の追加
+
+### 実装するエンドポイント
+
+**GET /api/leagues/:id** - リーグ詳細（プレイヤー情報含む）
+
+### 8-1: リポジトリに関数追加
+
+```typescript
+// findLeaguesByUserId の下に追加
 
 // リーグ詳細取得（プレイヤー情報含む）
 export async function findLeagueById(leagueId: string) {
@@ -180,6 +565,99 @@ export async function findLeagueById(leagueId: string) {
 
   return league
 }
+```
+
+### 8-2: エラークラスの追加
+
+`src/server/middleware/error-handler.ts` に追加（まだなければ）：
+
+```typescript
+export class NotFoundError extends HTTPException {
+  constructor(message = 'リソースが見つかりません') {
+    super(404, { message })
+  }
+}
+
+export class ForbiddenError extends HTTPException {
+  constructor(message = '権限がありません') {
+    super(403, { message })
+  }
+}
+```
+
+### 8-3: サービスに関数追加
+
+```typescript
+import { NotFoundError, ForbiddenError } from '../middleware/error-handler'
+
+// getLeaguesByUserId の下に追加
+
+// リーグ詳細取得
+export async function getLeagueById(leagueId: string, userId: string) {
+  const league = await leaguesRepo.findLeagueById(leagueId)
+
+  if (!league) {
+    throw new NotFoundError('リーグが見つかりません')
+  }
+
+  // ユーザーがリーグに参加しているかチェック
+  const isParticipant = league.players.some((player) => player.userId === userId)
+  if (!isParticipant) {
+    throw new ForbiddenError('このリーグへのアクセス権限がありません')
+  }
+
+  return league
+}
+```
+
+### 8-4: ルートに追加
+
+```typescript
+// GET /api/leagues/:id - リーグ詳細
+app.get('/:id', async (c) => {
+  const userId = c.get('userId')
+  const leagueId = c.req.param('id')
+
+  const league = await leaguesService.getLeagueById(leagueId, userId)
+
+  return c.json(league, 200)
+})
+```
+
+### 8-5: 動作確認
+
+```bash
+# リーグIDを取得（タスク7で取得したID）
+curl http://localhost:3000/api/leagues/{LEAGUE_ID} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+---
+
+## タスク9: リーグ更新の追加
+
+### 実装するエンドポイント
+
+**PATCH /api/leagues/:id** - リーグ情報更新（管理者のみ）
+
+### 9-1: バリデータ追加
+
+`src/server/validators/leagues.ts` に追加：
+
+```typescript
+// createLeagueSchema の下に追加
+
+// リーグ更新リクエストのバリデーション
+export const updateLeagueSchema = z.object({
+  name: z.string().min(1).max(20).optional(),
+  description: z.string().optional(),
+})
+```
+
+### 9-2: リポジトリに関数追加
+
+```typescript
+// findLeagueById の下に追加
 
 // リーグ更新
 export async function updateLeague(
@@ -197,6 +675,83 @@ export async function updateLeague(
 
   return updated
 }
+```
+
+### 9-3: サービスに関数追加
+
+```typescript
+// getLeagueById の下に追加
+
+// リーグ更新
+export async function updateLeague(
+  leagueId: string,
+  userId: string,
+  data: { name?: string; description?: string }
+) {
+  const league = await leaguesRepo.findLeagueById(leagueId)
+
+  if (!league) {
+    throw new NotFoundError('リーグが見つかりません')
+  }
+
+  // Admin権限チェック
+  if (!hasAdminRole(league, userId)) {
+    throw new ForbiddenError('リーグを更新する権限がありません')
+  }
+
+  return await leaguesRepo.updateLeague(leagueId, data)
+}
+
+// ファイルの最後に追加
+// Admin権限チェックヘルパー
+function hasAdminRole(
+  league: { players: Array<{ userId: string | null; role: string | null }> },
+  userId: string
+): boolean {
+  return league.players.some((player) => player.userId === userId && player.role === 'admin')
+}
+```
+
+### 9-4: ルートに追加
+
+```typescript
+import { updateLeagueSchema } from '../validators/leagues'
+
+// PATCH /api/leagues/:id - リーグ更新
+app.patch('/:id', zValidator('json', updateLeagueSchema), async (c) => {
+  const userId = c.get('userId')
+  const leagueId = c.req.param('id')
+  const data = c.req.valid('json')
+
+  const league = await leaguesService.updateLeague(leagueId, userId, data)
+
+  return c.json(league, 200)
+})
+```
+
+### 9-5: 動作確認
+
+```bash
+curl -X PATCH http://localhost:3000/api/leagues/{LEAGUE_ID} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "更新されたリーグ名"
+  }'
+```
+
+---
+
+## タスク10: リーグ削除の追加
+
+### 実装するエンドポイント
+
+**DELETE /api/leagues/:id** - リーグ削除（論理削除、管理者のみ）
+
+### 10-1: リポジトリに関数追加
+
+```typescript
+// updateLeague の下に追加
 
 // リーグ削除（論理削除）
 export async function deleteLeague(leagueId: string) {
@@ -208,6 +763,74 @@ export async function deleteLeague(leagueId: string) {
     })
     .where(eq(leaguesTable.id, leagueId))
 }
+```
+
+### 10-2: サービスに関数追加
+
+```typescript
+// updateLeague の下に追加
+
+// リーグ削除
+export async function deleteLeague(leagueId: string, userId: string) {
+  const league = await leaguesRepo.findLeagueById(leagueId)
+
+  if (!league) {
+    throw new NotFoundError('リーグが見つかりません')
+  }
+
+  // Admin権限チェック
+  if (!hasAdminRole(league, userId)) {
+    throw new ForbiddenError('リーグを削除する権限がありません')
+  }
+
+  await leaguesRepo.deleteLeague(leagueId)
+}
+```
+
+### 10-3: ルートに追加
+
+```typescript
+// DELETE /api/leagues/:id - リーグ削除
+app.delete('/:id', async (c) => {
+  const userId = c.get('userId')
+  const leagueId = c.req.param('id')
+
+  await leaguesService.deleteLeague(leagueId, userId)
+
+  return c.body(null, 204)
+})
+```
+
+### 10-4: 動作確認
+
+```bash
+curl -X DELETE http://localhost:3000/api/leagues/{LEAGUE_ID} \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+---
+
+## タスク11: ステータス変更の追加
+
+### 実装するエンドポイント
+
+**PATCH /api/leagues/:id/status** - ステータス変更（管理者のみ）
+
+### 11-1: バリデータ追加
+
+```typescript
+// updateLeagueSchema の下に追加
+
+// ステータス変更リクエストのバリデーション
+export const updateLeagueStatusSchema = z.object({
+  status: z.enum(['active', 'completed', 'deleted']),
+})
+```
+
+### 11-2: リポジトリに関数追加
+
+```typescript
+// deleteLeague の下に追加
 
 // ステータス変更
 export async function updateLeagueStatus(
@@ -231,120 +854,10 @@ export async function updateLeagueStatus(
 }
 ```
 
-### 実装のポイント
-
-1. **トランザクション処理**
-   - `db.transaction()` でリーグ作成とプレイヤー作成を1つのトランザクションで実行
-   - どちらかが失敗した場合、すべてロールバックされる
-
-2. **作成者の自動割り当て**
-   - `index === 0` の最初のプレイヤーを作成者として紐づけ
-   - 自動的に `role: admin` を設定
-
-3. **リレーショナルクエリ**
-   - `db.query.leaguesTable.findFirst()` で `with` を使ってプレイヤー情報を取得
-   - Drizzle ORMの型安全なリレーション機能
-
-4. **論理削除**
-   - `DELETE` ではなく `UPDATE` でステータスを `deleted` に変更
-
-### 📚 公式ドキュメント
-
-- [Drizzle ORM: Transactions](https://orm.drizzle.team/docs/transactions)
-- [Drizzle ORM: Select](https://orm.drizzle.team/docs/select)
-- [Drizzle ORM: Insert](https://orm.drizzle.team/docs/insert)
-- [Drizzle ORM: Update](https://orm.drizzle.team/docs/update)
-- [Drizzle ORM: Relational Queries](https://orm.drizzle.team/docs/rqb)
-
----
-
-## タスク3: サービス作成
-
-### ファイル: `src/server/services/leagues.service.ts`
-
-### 実装内容
-
-ビジネスロジックを担当するサービス層
-
-### 実装例
+### 11-3: サービスに関数追加
 
 ```typescript
-import { NotFoundError, ForbiddenError } from '../middleware/error-handler'
-import * as leaguesRepo from '../repositories/leagues.repository'
-
-// リーグ作成
-export async function createLeague(
-  userId: string,
-  data: {
-    name: string
-    description?: string
-    players: Array<{ name: string }>
-  }
-) {
-  return await leaguesRepo.createLeagueWithPlayers({
-    ...data,
-    createdBy: userId,
-  })
-}
-
-// リーグ一覧取得
-export async function getLeaguesByUserId(userId: string) {
-  const leagues = await leaguesRepo.findLeaguesByUserId(userId)
-  return { leagues }
-}
-
-// リーグ詳細取得
-export async function getLeagueById(leagueId: string, userId: string) {
-  const league = await leaguesRepo.findLeagueById(leagueId)
-
-  if (!league) {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
-  // ユーザーがリーグに参加しているかチェック
-  const isParticipant = league.players.some((player) => player.userId === userId)
-  if (!isParticipant) {
-    throw new ForbiddenError('このリーグへのアクセス権限がありません')
-  }
-
-  return league
-}
-
-// リーグ更新
-export async function updateLeague(
-  leagueId: string,
-  userId: string,
-  data: { name?: string; description?: string }
-) {
-  const league = await leaguesRepo.findLeagueById(leagueId)
-
-  if (!league) {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
-  // Admin権限チェック
-  if (!hasAdminRole(league, userId)) {
-    throw new ForbiddenError('リーグを更新する権限がありません')
-  }
-
-  return await leaguesRepo.updateLeague(leagueId, data)
-}
-
-// リーグ削除
-export async function deleteLeague(leagueId: string, userId: string) {
-  const league = await leaguesRepo.findLeagueById(leagueId)
-
-  if (!league) {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
-  // Admin権限チェック
-  if (!hasAdminRole(league, userId)) {
-    throw new ForbiddenError('リーグを削除する権限がありません')
-  }
-
-  await leaguesRepo.deleteLeague(leagueId)
-}
+// deleteLeague の下に追加
 
 // ステータス変更
 export async function updateLeagueStatus(
@@ -365,114 +878,12 @@ export async function updateLeagueStatus(
 
   return await leaguesRepo.updateLeagueStatus(leagueId, status)
 }
-
-// Admin権限チェックヘルパー
-function hasAdminRole(
-  league: { players: Array<{ userId: string | null; role: string | null }> },
-  userId: string
-): boolean {
-  return league.players.some((player) => player.userId === userId && player.role === 'admin')
-}
 ```
 
-### 実装のポイント
-
-1. **権限チェック**
-   - `hasAdminRole()` ヘルパー関数でAdmin権限を確認
-   - 権限がない場合は `ForbiddenError` (403) を投げる
-
-2. **存在チェック**
-   - リーグが存在しない場合は `NotFoundError` (404) を投げる
-
-3. **参加者チェック**
-   - リーグ詳細取得時に、ユーザーがリーグに参加しているか確認
-
-4. **ビジネスロジックの集約**
-   - Repository層はデータアクセスのみ
-   - Service層で権限チェックや存在確認などのビジネスロジックを実装
-
-### 📚 関連ファイル
-
-- `src/server/middleware/error-handler.ts` で定義したカスタムエラークラスを使用
-
----
-
-## タスク4: ルート作成
-
-### ファイル: `src/server/routes/leagues.ts`
-
-### 実装内容
-
-エンドポイントの定義とルーティング
-
-### 実装例
+### 11-4: ルートに追加
 
 ```typescript
-import { zValidator } from '@hono/zod-validator'
-import { Hono } from 'hono'
-import type { AuthContext } from '../middleware/auth'
-import { authMiddleware } from '../middleware/auth'
-import * as leaguesService from '../services/leagues.service'
-import {
-  createLeagueSchema,
-  updateLeagueSchema,
-  updateLeagueStatusSchema,
-} from '../validators/leagues.validator'
-
-const app = new Hono<AuthContext>()
-
-// すべてのルートに認証ミドルウェアを適用
-app.use('*', authMiddleware)
-
-// POST /api/leagues - リーグ作成
-app.post('/', zValidator('json', createLeagueSchema), async (c) => {
-  const userId = c.get('userId')
-  const data = c.req.valid('json')
-
-  const league = await leaguesService.createLeague(userId, data)
-
-  return c.json(league, 201)
-})
-
-// GET /api/leagues - リーグ一覧
-app.get('/', async (c) => {
-  const userId = c.get('userId')
-
-  const result = await leaguesService.getLeaguesByUserId(userId)
-
-  return c.json(result, 200)
-})
-
-// GET /api/leagues/:id - リーグ詳細
-app.get('/:id', async (c) => {
-  const userId = c.get('userId')
-  const leagueId = c.req.param('id')
-
-  const league = await leaguesService.getLeagueById(leagueId, userId)
-
-  return c.json(league, 200)
-})
-
-// PATCH /api/leagues/:id - リーグ更新
-app.patch('/:id', zValidator('json', updateLeagueSchema), async (c) => {
-  const userId = c.get('userId')
-  const leagueId = c.req.param('id')
-  const data = c.req.valid('json')
-
-  const league = await leaguesService.updateLeague(leagueId, userId, data)
-
-  return c.json(league, 200)
-})
-
-// DELETE /api/leagues/:id - リーグ削除
-app.delete('/:id', async (c) => {
-  const userId = c.get('userId')
-  const leagueId = c.req.param('id')
-
-  await leaguesService.deleteLeague(leagueId, userId)
-
-  return c.body(null, 204)
-})
+import { updateLeagueStatusSchema } from '../validators/leagues'
 
 // PATCH /api/leagues/:id/status - ステータス変更
 app.patch('/:id/status', zValidator('json', updateLeagueStatusSchema), async (c) => {
@@ -484,222 +895,49 @@ app.patch('/:id/status', zValidator('json', updateLeagueStatusSchema), async (c)
 
   return c.json(league, 200)
 })
-
-export default app
 ```
 
-### 実装のポイント
+### 11-5: 動作確認
 
-1. **認証ミドルウェアの適用**
-   - `app.use('*', authMiddleware)` ですべてのルートに認証を適用
-   - `AuthContext` 型を指定して `c.get('userId')` が型安全に
-
-2. **バリデーション**
-   - `zValidator('json', schema)` でリクエストボディを検証
-   - `c.req.valid('json')` で検証済みのデータを取得（型推論される）
-
-3. **ステータスコード**
-   - 作成: `201 Created`
-   - 取得: `200 OK`
-   - 削除: `204 No Content`
-
-4. **パラメータ取得**
-   - `c.req.param('id')` でパスパラメータを取得
-
-### 📚 公式ドキュメント
-
-- [Hono: Routing](https://hono.dev/docs/api/routing)
-- [Hono: Context](https://hono.dev/docs/api/context)
-- [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
-
----
-
-## タスク5: AppTypeエクスポート
-
-### ファイル: `src/server/routes/index.ts`
-
-### 実装内容
-
-**Hono RPCの最重要ポイント**: すべてのルートを1つの式でチェーンし、AppTypeをエクスポート
-
-### 実装例
-
-```typescript
-import { Hono } from 'hono'
-import leaguesRoutes from './leagues'
-
-const app = new Hono().basePath('/api')
-
-// ★すべてのルートを1つの式でチェーン（型推論に必須）
-const routes = app.route('/leagues', leaguesRoutes)
-// 将来的に追加するルート:
-// .route('/sessions', sessionsRoutes)
-// .route('/scores', scoresRoutes)
-
-// ★AppTypeをエクスポート（Hono RPCで使用）
-export type AppType = typeof routes
-
-export default app
+```bash
+curl -X PATCH http://localhost:3000/api/leagues/{LEAGUE_ID}/status \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "completed"
+  }'
 ```
-
-### 実装のポイント
-
-1. **1つの式でチェーン**
-   ```typescript
-   const routes = app.route('/leagues', leaguesRoutes)
-   ```
-   - 別々の行に分けると型推論が壊れる❌
-   - 1つの式で `.route()` をチェーンする✅
-
-2. **AppTypeのエクスポート**
-   ```typescript
-   export type AppType = typeof routes
-   ```
-   - `typeof app` ではなく `typeof routes` を使う
-   - フロントエンドで `hc<AppType>()` として使用
-
-3. **将来の拡張**
-   - 他のルートを追加する際も同じ式にチェーン
-   ```typescript
-   const routes = app
-     .route('/leagues', leaguesRoutes)
-     .route('/sessions', sessionsRoutes)
-     .route('/scores', scoresRoutes)
-   ```
-
-### 📚 公式ドキュメント
-
-- [Hono RPC](https://hono.dev/docs/guides/rpc)
-- [Hono: TypeScript Guide](https://hono.dev/docs/guides/typescript)
-
----
-
-## タスク6: Honoアプリに統合
-
-### ファイル: `app/api/[...route]/route.ts`
-
-### 実装内容
-
-Next.js App Routerのエンドポイントにルートを統合
-
-### 実装例
-
-```typescript
-import { handle } from 'hono/vercel'
-import app from '@/src/server/routes'
-
-export const GET = handle(app)
-export const POST = handle(app)
-export const PATCH = handle(app)
-export const DELETE = handle(app)
-```
-
-### 実装のポイント
-
-1. **既存のコードを置き換え**
-   - `const app = new Hono().basePath('/api')` の部分を削除
-   - `src/server/routes/index.ts` からインポート
-
-2. **エラーハンドラーは不要**
-   - `src/server/routes/index.ts` でまだエラーハンドラーを適用していない場合は、ここで適用：
-   ```typescript
-   import app from '@/src/server/routes'
-   import { errorHandler } from '@/src/server/middleware/error-handler'
-
-   app.onError(errorHandler)
-
-   export const GET = handle(app)
-   export const POST = handle(app)
-   export const PATCH = handle(app)
-   export const DELETE = handle(app)
-   ```
-
-### 📚 公式ドキュメント
-
-- [Hono: Vercel Adapter](https://hono.dev/docs/getting-started/vercel)
 
 ---
 
 ## ステップ2完了チェックリスト
 
-- [ ] `src/server/validators/leagues.validator.ts` が実装された
-- [ ] `src/server/repositories/leagues.repository.ts` が実装された
-- [ ] `src/server/services/leagues.service.ts` が実装された
-- [ ] `src/server/routes/leagues.ts` が実装された
-- [ ] `src/server/routes/index.ts` が実装され、AppTypeがエクスポートされた
-- [ ] `app/api/[...route]/route.ts` にルートが統合された
+### フェーズ1（必須）
+- [ ] リーグ作成APIが実装された
+- [ ] curlで動作確認ができた
+- [ ] Drizzle Studioでデータを確認できた
+
+### フェーズ2（拡張）
+- [ ] リーグ一覧取得が実装された
+- [ ] リーグ詳細取得が実装された
+- [ ] リーグ更新が実装された
+- [ ] リーグ削除が実装された
+- [ ] ステータス変更が実装された
+- [ ] すべてのエンドポイントの動作確認ができた
+
+### 品質チェック
 - [ ] 型エラーがなく、`bun run lint` が通る
 - [ ] `bun run build` が成功する
 
 ---
 
-## 動作確認
-
-### ローカルサーバー起動
-
-```bash
-bun run dev
-```
-
-### APIテスト（curlまたはPostman）
-
-**1. リーグ作成**
-```bash
-curl -X POST http://localhost:3000/api/leagues \
-  -H "Authorization: Bearer YOUR_SUPABASE_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "テストリーグ",
-    "description": "16人リーグ",
-    "players": [
-      {"name": "プレイヤー1"},
-      {"name": "プレイヤー2"},
-      {"name": "プレイヤー3"},
-      {"name": "プレイヤー4"},
-      {"name": "プレイヤー5"},
-      {"name": "プレイヤー6"},
-      {"name": "プレイヤー7"},
-      {"name": "プレイヤー8"},
-      {"name": "プレイヤー9"},
-      {"name": "プレイヤー10"},
-      {"name": "プレイヤー11"},
-      {"name": "プレイヤー12"},
-      {"name": "プレイヤー13"},
-      {"name": "プレイヤー14"},
-      {"name": "プレイヤー15"},
-      {"name": "プレイヤー16"}
-    ]
-  }'
-```
-
-**2. リーグ一覧取得**
-```bash
-curl http://localhost:3000/api/leagues \
-  -H "Authorization: Bearer YOUR_SUPABASE_JWT_TOKEN"
-```
-
-**3. リーグ詳細取得**
-```bash
-curl http://localhost:3000/api/leagues/{LEAGUE_ID} \
-  -H "Authorization: Bearer YOUR_SUPABASE_JWT_TOKEN"
-```
-
-### トークンの取得方法
-
-1. Supabaseダッシュボードでユーザーを作成
-2. フロントエンドでログイン
-3. `supabase.auth.getSession()` でトークンを取得
-4. または、ブラウザの開発者ツールで `sb-access-token` Cookieを確認
-
----
-
 ## 次のステップへ
 
-ステップ2が完了したら、ステップ3に進みます：
+ステップ2が完了したら、次はステップ3に進みます：
 
-**ステップ3: 残りのエンドポイント実装**
-- プレイヤー管理API（2エンドポイント）
-- その他のリーグ管理エンドポイント（必要に応じて）
+**ステップ3: プレイヤー管理API**
+- プレイヤー名更新
+- 権限変更
 
 **ステップ4: フロントエンド統合**
 - RPCクライアント初期化（`src/client/api.ts`）

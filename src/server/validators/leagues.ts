@@ -21,14 +21,3 @@ export const createLeagueSchema = z.object({
       'プレイヤーは8人または16人で指定してください',
     ),
 })
-
-// リーグ更新リクエストのバリデーション（オプション）
-export const updateLeagueSchema = z.object({
-  name: z.string().min(1).max(20).optional(),
-  description: z.string().optional(),
-})
-
-// ステータス変更リクエストのバリデーション（オプション）
-export const updateLeagueStatusSchema = z.object({
-  status: z.enum(['active', 'completed', 'deleted']),
-})
