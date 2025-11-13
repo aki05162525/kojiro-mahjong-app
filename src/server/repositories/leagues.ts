@@ -53,3 +53,23 @@ export async function findLeaguesByUserId(userId: string) {
     .innerJoin(playersTable, eq(leaguesTable.id, playersTable.leagueId))
     .where(eq(playersTable.userId, userId))
 }
+
+// リーグ詳細取得（プレイヤー情報含む）
+export async function findLeagueById(leagueId: string) {
+  const league = await db.query.leaguesTable.findFirst({
+    where: eq(leaguesTable.id, leagueId),
+    with: {
+      players: {
+        columns: {
+          id: true,
+          name: true,
+          userId: true,
+          role: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
+
+  return league
+}

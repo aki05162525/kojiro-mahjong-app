@@ -27,4 +27,14 @@ app.get('/', async (c) => {
   return c.json(result, 200)
 })
 
+// GET /api/leagues/:id - リーグ詳細
+app.get('/:id', async (c) => {
+  const userId = c.get('userId')
+  const leagueId = c.req.param('id')
+
+  const league = await leaguesService.getLeagueById(leagueId, userId)
+
+  return c.json(league, 200)
+})
+
 export default app
