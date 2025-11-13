@@ -2,6 +2,8 @@ import { and, eq, inArray, ne } from 'drizzle-orm'
 import { db } from '@/db'
 import { leaguesTable, playersTable } from '@/db/schema'
 
+const notDeletedCondition = ne(leaguesTable.status, 'deleted')
+
 // リーグ作成（トランザクション）
 export async function createLeagueWithPlayers(data: {
   name: string
@@ -55,13 +57,13 @@ export async function findLeaguesByUserId(userId: string) {
       updatedAt: leaguesTable.updatedAt,
     })
     .from(leaguesTable)
-    .where(and(inArray(leaguesTable.id, subQuery), ne(leaguesTable.status, 'deleted')))
+    .where(and(inArray(leaguesTable.id, subQuery), notDeletedCondition))
 }
 
 // リーグ詳細取得（プレイヤー情報含む）
 export async function findLeagueById(leagueId: string) {
   const league = await db.query.leaguesTable.findFirst({
-    where: and(eq(leaguesTable.id, leagueId), ne(leaguesTable.status, 'deleted')),
+    where: and(eq(leaguesTable.id, leagueId), notDeletedCondition),
     with: {
       players: {
         columns: {

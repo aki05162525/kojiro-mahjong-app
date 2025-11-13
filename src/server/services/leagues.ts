@@ -19,7 +19,8 @@ export async function createLeague(
 // リーグ一覧取得
 export async function getLeaguesByUserId(userId: string) {
   const leagues = await leaguesRepo.findLeaguesByUserId(userId)
-  return { leagues }
+  const visibleLeagues = leagues.filter((league) => league.status !== 'deleted')
+  return { leagues: visibleLeagues }
 }
 
 // リーグ詳細取得
@@ -27,6 +28,9 @@ export async function getLeagueById(leagueId: string, userId: string) {
   const league = await leaguesRepo.findLeagueById(leagueId)
 
   if (!league) {
+    throw new NotFoundError('リーグが見つかりません')
+  }
+  if (league.status === 'deleted') {
     throw new NotFoundError('リーグが見つかりません')
   }
 
@@ -45,33 +49,13 @@ export async function updateLeague(
   userId: string,
   data: { name?: string; description?: string },
 ) {
-  const league = await leaguesRepo.findLeagueById(leagueId)
-
-  if (!league) {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
-  // Admin権限チェック
-  if (!hasAdminRole(league, userId)) {
-    throw new ForbiddenError('リーグを更新する権限がありません')
-  }
-
+  await findLeagueAndVerifyAdmin(leagueId, userId)
   return await leaguesRepo.updateLeague(leagueId, data)
 }
 
 // リーグ削除
 export async function deleteLeague(leagueId: string, userId: string) {
-  const league = await leaguesRepo.findLeagueById(leagueId)
-
-  if (!league) {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
-  // Admin権限チェック
-  if (!hasAdminRole(league, userId)) {
-    throw new ForbiddenError('リーグを削除する権限がありません')
-  }
-
+  await findLeagueAndVerifyAdmin(leagueId, userId)
   await leaguesRepo.deleteLeague(leagueId)
 }
 
@@ -81,18 +65,26 @@ export async function updateLeagueStatus(
   userId: string,
   status: 'active' | 'completed' | 'deleted',
 ) {
+  await findLeagueAndVerifyAdmin(leagueId, userId)
+  return await leaguesRepo.updateLeagueStatus(leagueId, status)
+}
+
+// リーグを取得し、管理者権限を検証するヘルパー
+async function findLeagueAndVerifyAdmin(leagueId: string, userId: string) {
   const league = await leaguesRepo.findLeagueById(leagueId)
 
   if (!league) {
     throw new NotFoundError('リーグが見つかりません')
   }
-
-  // Admin権限チェック
-  if (!hasAdminRole(league, userId)) {
-    throw new ForbiddenError('ステータスを変更する権限がありません')
+  if (league.status === 'deleted') {
+    throw new NotFoundError('リーグが見つかりません')
   }
 
-  return await leaguesRepo.updateLeagueStatus(leagueId, status)
+  if (!hasAdminRole(league, userId)) {
+    throw new ForbiddenError('この操作を実行する権限がありません')
+  }
+
+  return league
 }
 
 // Admin権限チェックヘルパー
