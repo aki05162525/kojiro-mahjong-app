@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+// リーグバリデーションスキーマ
+
 // プレイヤー名のバリデーション
 const playerNameSchema = z.object({
   name: z
