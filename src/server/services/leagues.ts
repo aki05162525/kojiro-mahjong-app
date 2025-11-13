@@ -19,8 +19,7 @@ export async function createLeague(
 // リーグ一覧取得
 export async function getLeaguesByUserId(userId: string) {
   const leagues = await leaguesRepo.findLeaguesByUserId(userId)
-  const visibleLeagues = leagues.filter((league) => league.status !== 'deleted')
-  return { leagues: visibleLeagues }
+  return { leagues }
 }
 
 // リーグ詳細取得
