@@ -101,3 +101,24 @@ export async function deleteLeague(leagueId: string) {
     })
     .where(eq(leaguesTable.id, leagueId))
 }
+
+// ステータス変更
+export async function updateLeagueStatus(
+  leagueId: string,
+  status: 'active' | 'completed' | 'deleted',
+) {
+  const [updated] = await db
+    .update(leaguesTable)
+    .set({
+      status,
+      updatedAt: new Date(),
+    })
+    .where(eq(leaguesTable.id, leagueId))
+    .returning({
+      id: leaguesTable.id,
+      status: leaguesTable.status,
+      updatedAt: leaguesTable.updatedAt,
+    })
+
+  return updated
+}

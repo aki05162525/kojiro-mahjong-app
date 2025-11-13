@@ -3,7 +3,11 @@ import { Hono } from 'hono'
 import type { AuthContext } from '../middleware/auth'
 import { authMiddleware } from '../middleware/auth'
 import * as leaguesService from '../services/leagues'
-import { createLeagueSchema, updateLeagueSchema } from '../validators/leagues'
+import {
+  createLeagueSchema,
+  updateLeagueSchema,
+  updateLeagueStatusSchema,
+} from '../validators/leagues'
 
 const app = new Hono<AuthContext>()
 
@@ -56,6 +60,17 @@ app.delete('/:id', async (c) => {
   await leaguesService.deleteLeague(leagueId, userId)
 
   return c.body(null, 204)
+})
+
+// PATCH /api/leagues/:id/status - ステータス変更
+app.patch('/:id/status', zValidator('json', updateLeagueStatusSchema), async (c) => {
+  const userId = c.get('userId')
+  const leagueId = c.req.param('id')
+  const { status } = c.req.valid('json')
+
+  const league = await leaguesService.updateLeagueStatus(leagueId, userId, status)
+
+  return c.json(league, 200)
 })
 
 export default app

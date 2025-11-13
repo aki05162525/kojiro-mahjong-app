@@ -75,6 +75,26 @@ export async function deleteLeague(leagueId: string, userId: string) {
   await leaguesRepo.deleteLeague(leagueId)
 }
 
+// ステータス変更
+export async function updateLeagueStatus(
+  leagueId: string,
+  userId: string,
+  status: 'active' | 'completed' | 'deleted',
+) {
+  const league = await leaguesRepo.findLeagueById(leagueId)
+
+  if (!league) {
+    throw new NotFoundError('リーグが見つかりません')
+  }
+
+  // Admin権限チェック
+  if (!hasAdminRole(league, userId)) {
+    throw new ForbiddenError('ステータスを変更する権限がありません')
+  }
+
+  return await leaguesRepo.updateLeagueStatus(leagueId, status)
+}
+
 // Admin権限チェックヘルパー
 function hasAdminRole(
   league: { players: Array<{ userId: string | null; role: string | null }> },

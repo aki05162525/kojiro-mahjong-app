@@ -22,3 +22,8 @@ export const updateLeagueSchema = z.object({
   name: z.string().min(1).max(20).optional(),
   description: z.string().optional(),
 })
+
+// ステータス変更リクエストのバリデーション
+export const updateLeagueStatusSchema = z.object({
+  status: z.enum(['active', 'completed', 'deleted']),
+})
