@@ -16,5 +16,14 @@ export const createLeagueSchema = z.object({
   description: z.string().optional(),
   players: z.union([z.array(playerNameSchema).length(8), z.array(playerNameSchema).length(16)]),
 })
-// test comment
-// test
+
+// リーグ更新リクエストのバリデーション
+export const updateLeagueSchema = z.object({
+  name: z.string().min(1).max(20).optional(),
+  description: z.string().optional(),
+})
+
+// ステータス変更リクエストのバリデーション
+export const updateLeagueStatusSchema = z.object({
+  status: z.enum(['active', 'completed', 'deleted']),
+})
