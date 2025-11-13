@@ -1,15 +1,7 @@
-import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
-import { errorHandler } from '@/src/server/middleware/error-handler'
-
-const app = new Hono().basePath('/api')
-
-app.onError(errorHandler)
-
-app.get('/hello', (c) => {
-  return c.json({
-    message: 'Hello from Hono!',
-  })
-})
+import app from '@/src/server/routes'
 
 export const GET = handle(app)
+export const POST = handle(app)
+export const PATCH = handle(app)
+export const DELETE = handle(app)
