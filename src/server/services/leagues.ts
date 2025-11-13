@@ -29,10 +29,6 @@ export async function getLeagueById(leagueId: string, userId: string) {
   if (!league) {
     throw new NotFoundError('リーグが見つかりません')
   }
-  if (league.status === 'deleted') {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
   // ユーザーがリーグに参加しているかチェック
   const isParticipant = league.players.some((player) => player.userId === userId)
   if (!isParticipant) {
@@ -75,10 +71,6 @@ async function findLeagueAndVerifyAdmin(leagueId: string, userId: string) {
   if (!league) {
     throw new NotFoundError('リーグが見つかりません')
   }
-  if (league.status === 'deleted') {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
   if (!hasAdminRole(league, userId)) {
     throw new ForbiddenError('この操作を実行する権限がありません')
   }
