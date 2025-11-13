@@ -14,3 +14,9 @@ export async function createLeague(
     createdBy: userId,
   })
 }
+
+// リーグ一覧取得
+export async function getLeaguesByUserId(userId: string) {
+  const leagues = await leaguesRepo.findLeaguesByUserId(userId)
+  return { leagues }
+}

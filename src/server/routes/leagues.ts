@@ -20,4 +20,11 @@ app.post('/', zValidator('json', createLeagueSchema), async (c) => {
   return c.json(league, 201)
 })
 
+// GET /api/leagues - リーグ一覧
+app.get('/', async (c) => {
+  const userId = c.get('userId')
+  const result = await leaguesService.getLeaguesByUserId(userId)
+  return c.json(result, 200)
+})
+
 export default app

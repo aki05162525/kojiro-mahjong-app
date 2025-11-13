@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { leaguesTable, playersTable } from '@/db/schema'
 
@@ -35,4 +36,20 @@ export async function createLeagueWithPlayers(data: {
       players,
     }
   })
+}
+
+export async function findLeaguesByUserId(userId: string) {
+  return await db
+    .select({
+      id: leaguesTable.id,
+      name: leaguesTable.name,
+      description: leaguesTable.description,
+      status: leaguesTable.status,
+      createdBy: leaguesTable.createdBy,
+      createdAt: leaguesTable.createdAt,
+      updatedAt: leaguesTable.updatedAt,
+    })
+    .from(leaguesTable)
+    .innerJoin(playersTable, eq(leaguesTable.id, playersTable.leagueId))
+    .where(eq(playersTable.userId, userId))
 }
