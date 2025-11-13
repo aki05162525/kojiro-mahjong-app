@@ -2,7 +2,8 @@ pre-commit:
   parallel: true
   commands:
     biome:
-      run: bun run lint:staged
+      glob: "**/*.{ts,tsx,js,jsx,cts,mts,cjs,mjs}"
+      run: bun run lint:fix {staged_files}
 
 pre-push:
   commands:
