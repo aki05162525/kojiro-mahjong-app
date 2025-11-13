@@ -48,4 +48,14 @@ app.patch('/:id', zValidator('json', updateLeagueSchema), async (c) => {
   return c.json(league, 200)
 })
 
+// DELETE /api/leagues/:id - リーグ削除
+app.delete('/:id', async (c) => {
+  const userId = c.get('userId')
+  const leagueId = c.req.param('id')
+
+  await leaguesService.deleteLeague(leagueId, userId)
+
+  return c.body(null, 204)
+})
+
 export default app

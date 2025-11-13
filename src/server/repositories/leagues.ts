@@ -90,3 +90,14 @@ export async function updateLeague(
 
   return updated
 }
+
+// リーグ削除（論理削除）
+export async function deleteLeague(leagueId: string) {
+  await db
+    .update(leaguesTable)
+    .set({
+      status: 'deleted',
+      updatedAt: new Date(),
+    })
+    .where(eq(leaguesTable.id, leagueId))
+}
