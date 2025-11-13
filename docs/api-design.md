@@ -88,15 +88,17 @@
   name: string,
   description: string | null,
   status: 'active' | 'completed' | 'deleted',
-  created_by: string,
-  created_at: string,        // ISO 8601形式
-  updated_at: string,
+  createdBy: string,
+  createdAt: string,        // ISO 8601形式
+  updatedAt: string,
   players: Array<{
     id: string,
+    leagueId: string,
     name: string,
-    user_id: string | null,
+    userId: string | null,
     role: 'admin' | 'scorer' | 'viewer' | null,
-    created_at: string
+    createdAt: string,
+    updatedAt: string
   }>
 }
 ```
@@ -120,9 +122,9 @@
     name: string,
     description: string | null,
     status: 'active' | 'completed' | 'deleted',
-    created_by: string,
-    created_at: string,
-    updated_at: string
+    createdBy: string,
+    createdAt: string,
+    updatedAt: string
   }>
 }
 ```
@@ -142,13 +144,13 @@
   name: string,
   description: string | null,
   status: 'active' | 'completed' | 'deleted',
-  created_by: string,
-  created_at: string,
-  updated_at: string,
+  createdBy: string,
+  createdAt: string,
+  updatedAt: string,
   players: Array<{
     id: string,
     name: string,
-    user_id: string | null,
+    userId: string | null,
     role: 'admin' | 'scorer' | 'viewer' | null
   }>
 }
@@ -175,7 +177,7 @@
   name: string,
   description: string | null,
   status: 'active' | 'completed' | 'deleted',
-  updated_at: string
+  updatedAt: string
 }
 ```
 
@@ -209,7 +211,7 @@
 {
   id: string,
   status: 'active' | 'completed' | 'deleted',
-  updated_at: string
+  updatedAt: string
 }
 ```
 
@@ -237,8 +239,8 @@
 {
   id: string,
   name: string,
-  user_id: string | null,
-  updated_at: string
+  userId: string | null,
+  updatedAt: string
 }
 ```
 
@@ -259,17 +261,17 @@
 ```
 
 **バリデーション:**
-- プレイヤーが `user_id` を持っている場合のみ権限を付与可能
-- `user_id` が null のプレイヤーに権限を設定しようとすると `400 Bad Request`
+- プレイヤーが `userId` を持っている場合のみ権限を付与可能
+- `userId` が null のプレイヤーに権限を設定しようとすると `400 Bad Request`
 
 **レスポンス（200 OK）:**
 ```typescript
 {
   id: string,
   name: string,
-  user_id: string | null,
+  userId: string | null,
   role: 'admin' | 'scorer' | 'viewer' | null,
-  updated_at: string
+  updatedAt: string
 }
 ```
 
@@ -322,12 +324,12 @@
 - リーグで**麻雀を打つ人**（8人または16人）
 - リーグ作成時に人数確定、途中での追加・削除は不可
 - アプリのユーザーである必要はない
-- `user_id` は null でもOK（後で紐づけ可能）
+- `userId` は null でもOK（後で紐づけ可能）
 - 名前の編集のみ可能（表記ゆれ修正用）
 
 ### 権限管理（role）
 - プレイヤーに権限を付与することで、リーグ運営・管理が可能
-- `user_id` が設定されているプレイヤーのみ権限を付与可能
+- `userId` が設定されているプレイヤーのみ権限を付与可能
 - 権限の種類:
   - `admin`: リーグの管理権限（設定変更、権限付与など）
   - `scorer`: 点数入力権限

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+// リーグバリデーションスキーマ
+
 // プレイヤー名のバリデーション
 const playerNameSchema = z.object({
   name: z
@@ -14,3 +16,5 @@ export const createLeagueSchema = z.object({
   description: z.string().optional(),
   players: z.union([z.array(playerNameSchema).length(8), z.array(playerNameSchema).length(16)]),
 })
+// test comment
+// test
