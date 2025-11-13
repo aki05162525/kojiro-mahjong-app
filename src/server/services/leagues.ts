@@ -38,3 +38,31 @@ export async function getLeagueById(leagueId: string, userId: string) {
 
   return league
 }
+
+// リーグ更新
+export async function updateLeague(
+  leagueId: string,
+  userId: string,
+  data: { name?: string; description?: string },
+) {
+  const league = await leaguesRepo.findLeagueById(leagueId)
+
+  if (!league) {
+    throw new NotFoundError('リーグが見つかりません')
+  }
+
+  // Admin権限チェック
+  if (!hasAdminRole(league, userId)) {
+    throw new ForbiddenError('リーグを更新する権限がありません')
+  }
+
+  return await leaguesRepo.updateLeague(leagueId, data)
+}
+
+// Admin権限チェックヘルパー
+function hasAdminRole(
+  league: { players: Array<{ userId: string | null; role: string | null }> },
+  userId: string,
+): boolean {
+  return league.players.some((player) => player.userId === userId && player.role === 'admin')
+}

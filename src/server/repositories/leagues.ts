@@ -73,3 +73,20 @@ export async function findLeagueById(leagueId: string) {
 
   return league
 }
+
+// リーグ更新
+export async function updateLeague(
+  leagueId: string,
+  data: { name?: string; description?: string },
+) {
+  const [updated] = await db
+    .update(leaguesTable)
+    .set({
+      ...data,
+      updatedAt: new Date(),
+    })
+    .where(eq(leaguesTable.id, leagueId))
+    .returning()
+
+  return updated
+}
