@@ -1,4 +1,4 @@
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import { db } from '@/db'
 import { leaguesTable, playersTable } from '@/db/schema'
 
@@ -39,6 +39,11 @@ export async function createLeagueWithPlayers(data: {
 }
 
 export async function findLeaguesByUserId(userId: string) {
+  const subQuery = db
+    .selectDistinct({ leagueId: playersTable.leagueId })
+    .from(playersTable)
+    .where(eq(playersTable.userId, userId))
+
   return await db
     .select({
       id: leaguesTable.id,
@@ -50,8 +55,7 @@ export async function findLeaguesByUserId(userId: string) {
       updatedAt: leaguesTable.updatedAt,
     })
     .from(leaguesTable)
-    .innerJoin(playersTable, eq(leaguesTable.id, playersTable.leagueId))
-    .where(and(eq(playersTable.userId, userId), ne(leaguesTable.status, 'deleted')))
+    .where(and(inArray(leaguesTable.id, subQuery), ne(leaguesTable.status, 'deleted')))
 }
 
 // リーグ詳細取得（プレイヤー情報含む）
