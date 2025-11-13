@@ -317,13 +317,13 @@ export const DELETE = handle(app)
 
 ## フェーズ1完了チェックリスト
 
-- [ ] `src/server/validators/leagues.ts` が実装された
-- [ ] `src/server/repositories/leagues.ts` が実装された
-- [ ] `src/server/services/leagues.ts` が実装された
-- [ ] `src/server/routes/leagues.ts` が実装された
-- [ ] `src/server/routes/index.ts` が実装され、AppTypeがエクスポートされた
-- [ ] `app/api/[...route]/route.ts` にルートが統合された
-- [ ] 型エラーがなく、`bun run lint` が通る
+- [x] `src/server/validators/leagues.ts` が実装された
+- [x] `src/server/repositories/leagues.ts` が実装された
+- [x] `src/server/services/leagues.ts` が実装された
+- [x] `src/server/routes/leagues.ts` が実装された
+- [x] `src/server/routes/index.ts` が実装され、AppTypeがエクスポートされた
+- [x] `app/api/[...route]/route.ts` にルートが統合された
+- [x] 型エラーがなく、`bun run lint` が通る
 
 ---
 
@@ -913,21 +913,21 @@ curl -X PATCH http://localhost:3000/api/leagues/{LEAGUE_ID}/status \
 ## ステップ2完了チェックリスト
 
 ### フェーズ1（必須）
-- [ ] リーグ作成APIが実装された
-- [ ] curlで動作確認ができた
-- [ ] Drizzle Studioでデータを確認できた
+- [x] リーグ作成APIが実装された
+- [x] curlで動作確認ができた
+- [x] Drizzle Studioでデータを確認できた
 
 ### フェーズ2（拡張）
-- [ ] リーグ一覧取得が実装された
-- [ ] リーグ詳細取得が実装された
-- [ ] リーグ更新が実装された
-- [ ] リーグ削除が実装された
-- [ ] ステータス変更が実装された
-- [ ] すべてのエンドポイントの動作確認ができた
+- [x] リーグ一覧取得が実装された
+- [x] リーグ詳細取得が実装された
+- [x] リーグ更新が実装された
+- [x] リーグ削除が実装された
+- [x] ステータス変更が実装された
+- [x] すべてのエンドポイントの動作確認ができた
 
 ### 品質チェック
-- [ ] 型エラーがなく、`bun run lint` が通る
-- [ ] `bun run build` が成功する
+- [x] 型エラーがなく、`bun run lint` が通る
+- [x] `bun run build` が成功する
 
 ---
 
