@@ -98,6 +98,7 @@ const app = new OpenAPIHono().basePath('/api')
 ```typescript
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { swaggerUI } from '@hono/swagger-ui'
+import { Hono } from 'hono'
 import { errorHandler } from '../middleware/error-handler'
 import leaguesRoutes from './leagues'
 import playersRoutes from './players'
@@ -107,11 +108,26 @@ const app = new OpenAPIHono().basePath('/api')
 // エラーハンドラーを登録
 app.onError(errorHandler)
 
-// 既存のルートをチェーン（互換性維持）
-const routes = app
+// セキュリティスキームを登録
+app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+  description: 'Supabase AuthのJWTトークンを使用',
+})
+
+// --- RPC用のルートを定義（ドキュメントエンドポイントと分離） ---
+const rpcRoutes = new Hono()
   .route('/leagues', leaguesRoutes)
   .route('/leagues', playersRoutes)
 
+// ★ RPCクライアント用の型をエクスポート（ドキュメントエンドポイントを含まない）
+export type AppType = typeof rpcRoutes
+
+// メインアプリにRPCルートを登録
+app.route('/', rpcRoutes)
+
+// --- ドキュメント用エンドポイント（RPC型定義から除外） ---
 // OpenAPI仕様書エンドポイント
 app.doc('/doc', {
   openapi: '3.1.0',
@@ -125,8 +141,7 @@ app.doc('/doc', {
 // Swagger UIエンドポイント
 app.get('/ui', swaggerUI({ url: '/api/doc' }))
 
-export type AppType = typeof routes
-export default routes
+export default app
 ```
 
 **アクセス先:**
@@ -225,38 +240,14 @@ export default app
 **ルーティング設計について:**
 現在、playersRoutes は `/leagues` パスにマウントされています。これは既存の設計であり、OpenAPI導入時もこの構造を維持します。ルーティング構造の変更は別のissueとして扱います。
 
----
-
-### タスク5: 認証スキームの登録
-
-#### ファイル: `src/server/routes/index.ts`
-
-Swagger UIでBearer認証をサポートするために、セキュリティスキームを登録します。
-
-```typescript
-const app = new OpenAPIHono().basePath('/api')
-
-// セキュリティスキームを登録
-app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
-  type: 'http',
-  scheme: 'bearer',
-  bearerFormat: 'JWT',
-  description: 'Supabase AuthのJWTトークンを使用',
-})
-
-// エラーハンドラーを登録
-app.onError(errorHandler)
-
-// ... 残りのコード
-```
-
-**効果:**
-- Swagger UIで「Authorize」ボタンが表示される
-- トークンを入力してAPIをテストできる
+**AppType型定義の重要性:**
+- `AppType` は `rpcRoutes` から生成されます（ドキュメントエンドポイントを含まない）
+- これにより、RPCクライアントに不要なエンドポイント（`/doc`, `/ui`）が公開されるのを防ぎます
+- 関心事の明確な分離：RPC用ルート vs ドキュメント用ルート
 
 ---
 
-### タスク6: バリデーションスキーマの再利用
+### タスク5: バリデーションスキーマの再利用
 
 既存の `src/server/validators/leagues.ts` のZodスキーマを再利用できます。
 

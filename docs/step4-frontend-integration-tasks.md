@@ -138,7 +138,9 @@ export const useLeagues = () => {
     queryFn: async () => {
       const res = await apiClient.api.leagues.$get()
       if (!res.ok) {
-        throw new Error('Failed to fetch leagues')
+        // バックエンドからの構造化エラーレスポンスを取得
+        const error = await res.json()
+        throw new Error(error.message || 'Failed to fetch leagues')
       }
       return await res.json()
     },
@@ -157,7 +159,8 @@ export const useLeague = (leagueId: string) => {
         param: { id: leagueId },
       })
       if (!res.ok) {
-        throw new Error('Failed to fetch league')
+        const error = await res.json()
+        throw new Error(error.message || 'Failed to fetch league')
       }
       return await res.json()
     },
@@ -189,7 +192,8 @@ export const useCreateLeague = () => {
         json: data, // Hono RPCが型をチェック
       })
       if (!res.ok) {
-        throw new Error('Failed to create league')
+        const error = await res.json()
+        throw new Error(error.message || 'Failed to create league')
       }
       return await res.json()
     },
@@ -229,7 +233,8 @@ export const useUpdateLeague = () => {
         json: data,
       })
       if (!res.ok) {
-        throw new Error('Failed to update league')
+        const error = await res.json()
+        throw new Error(error.message || 'Failed to update league')
       }
       return await res.json()
     },
@@ -252,7 +257,8 @@ export const useDeleteLeague = () => {
         param: { id: leagueId },
       })
       if (!res.ok) {
-        throw new Error('Failed to delete league')
+        const error = await res.json()
+        throw new Error(error.message || 'Failed to delete league')
       }
     },
     onSuccess: () => {
@@ -281,7 +287,8 @@ export const useUpdateLeagueStatus = () => {
         json: { status },
       })
       if (!res.ok) {
-        throw new Error('Failed to update league status')
+        const error = await res.json()
+        throw new Error(error.message || 'Failed to update league status')
       }
       return await res.json()
     },
@@ -304,9 +311,11 @@ export const useUpdateLeagueStatus = () => {
    - データ更新後、関連するクエリのキャッシュを無効化して再取得
    - `{ queryKey: ['leagues'] }` は `['leagues']` で始まるすべてのキーに適用される
 
-3. **エラーハンドリング**
+3. **エラーハンドリング（重要）**
    - `res.ok` で HTTPステータスコードをチェック
-   - エラー時は `throw new Error()` でReact Queryのエラー状態に伝播
+   - バックエンドからの構造化エラーレスポンス（`{ error, message, statusCode }`）を取得
+   - `error.message` を使用して具体的なエラーメッセージを表示
+   - これにより、デバッグやユーザーへの分かりやすいエラー表示が可能になる
 
 4. **型推論**
    - Hono RPCにより、`json` プロパティや `param` プロパティの型が自動推論される
