@@ -118,7 +118,13 @@ bun add @tanstack/react-query-devtools
 
 ```typescript
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type InferRequestType } from 'hono/client'
 import { apiClient } from '../api'
+
+type CreateLeagueInput = InferRequestType<typeof apiClient.api.leagues.$post>['json']
+type UpdateLeagueInput = InferRequestType<typeof apiClient.api.leagues[':id'].$patch>['json']
+type UpdateLeagueStatusInput =
+  InferRequestType<typeof apiClient.api.leagues[':id'].status.$patch>['json']
 
 // ------------------------
 // Query Hooks (データ取得)
@@ -172,11 +178,7 @@ export const useCreateLeague = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: {
-      name: string
-      description?: string
-      players: Array<{ name: string }>
-    }) => {
+    mutationFn: async (data: CreateLeagueInput) => {
       const res = await apiClient.api.leagues.$post({
         json: data,
       })
@@ -204,7 +206,7 @@ export const useUpdateLeague = () => {
       data,
     }: {
       leagueId: string
-      data: { name?: string; description?: string }
+      data: UpdateLeagueInput
     }) => {
       const res = await apiClient.api.leagues[':id'].$patch({
         param: { id: leagueId },
@@ -257,7 +259,7 @@ export const useUpdateLeagueStatus = () => {
       status,
     }: {
       leagueId: string
-      status: 'active' | 'completed' | 'deleted'
+      status: UpdateLeagueStatusInput['status']
     }) => {
       const res = await apiClient.api.leagues[':id'].status.$patch({
         param: { id: leagueId },
