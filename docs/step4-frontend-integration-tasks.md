@@ -370,32 +370,61 @@ export const useUpdateLeagueStatus = () => {
 
 開発中にキャッシュの状態を可視化したい場合は、React Query DevToolsを設定します。
 
-### ファイル: `app/layout.tsx` (または `app/providers.tsx`)
+### ファイル1: `app/providers.tsx`
+
+まず、クライアントコンポーネントとしてプロバイダーを作成します。
 
 ```tsx
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000, // 1分
-        refetchOnWindowFocus: false,
-      },
-    },
-  }))
+export function Providers({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1分
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
+  )
 
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  )
+}
+```
+
+### ファイル2: `app/layout.tsx`
+
+次に、ルートレイアウトからプロバイダーを使用します（サーバーコンポーネントのまま）。
+
+```tsx
+import type { Metadata } from 'next'
+import { Providers } from './providers'
+
+export const metadata: Metadata = {
+  title: 'Kojiro Mahjong App',
+  description: 'Mahjong league management application',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="ja">
       <body>
-        <QueryClientProvider client={queryClient}>
-          {children}
-          <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
@@ -403,9 +432,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```
 
 **ポイント:**
-- `'use client'` ディレクティブが必須（Next.js App Router）
-- `QueryClient` はコンポーネント内で `useState` を使って1度だけ初期化
+- `app/providers.tsx` をクライアントコンポーネント（`'use client'`）として作成
+- `app/layout.tsx` はサーバーコンポーネントのままで、`Providers` をラップするだけ
+- `QueryClient` はクライアントコンポーネント内で `useState` を使って1度だけ初期化
 - `staleTime` でキャッシュの有効期間を設定
+- この構成により、Next.js App Routerの制約に準拠しつつReact Queryを使用できます
 
 ---
 
