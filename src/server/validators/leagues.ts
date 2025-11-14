@@ -27,3 +27,22 @@ export const updateLeagueSchema = z.object({
 export const updateLeagueStatusSchema = z.object({
   status: z.enum(['active', 'completed', 'deleted']),
 })
+
+// プレイヤーID用のパラメータバリデータ
+export const playerParamSchema = z.object({
+  leagueId: z.string().uuid(),
+  playerId: z.string().uuid(),
+})
+
+// プレイヤー名更新用のバリデータ
+export const updatePlayerNameSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'プレイヤー名は必須です')
+    .max(20, 'プレイヤー名は20文字以内で入力してください'),
+})
+
+// プレイヤー権限変更用のバリデータ
+export const updatePlayerRoleSchema = z.object({
+  role: z.enum(['admin', 'scorer', 'viewer']).nullable(),
+})

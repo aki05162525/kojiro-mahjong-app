@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(*:*)",
+      "Bash(bun add:*)",
+      "Bash(sed:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(psql:*)",
+      "WebSearch",
+      "Bash(gh issue create:*)",
+      "Bash(gh label:*)",
+      "Bash(gh:*)",
+      "Bash(bun run lint:*)",
+      "Bash(bunx tsc:*)",
+      "Bash(bun run build)",
+      "Bash(bun run prepare)",
+      "Bash(git add:*)",
+      "Bash(bunx lefthook run:*)",
+      "Bash(LEFTHOOK_VERBOSE=1 bunx lefthook run:*)",
+      "Bash(git restore:*)",
+      "Bash(bun run lint:fix:*)",
+      "Bash(bunx biome:*)",
+      "Bash(git commit:*)",
+      "Bash(pgrep:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
