@@ -3,11 +3,7 @@ import { db } from '@/db'
 import { playersTable } from '@/db/schema'
 
 // プレイヤー名を更新
-export async function updatePlayerName(
-  leagueId: string,
-  playerId: string,
-  name: string,
-) {
+export async function updatePlayerName(leagueId: string, playerId: string, name: string) {
   const [player] = await db
     .update(playersTable)
     .set({

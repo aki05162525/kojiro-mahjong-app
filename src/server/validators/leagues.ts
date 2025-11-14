@@ -36,7 +36,10 @@ export const playerParamSchema = z.object({
 
 // プレイヤー名更新用のバリデータ
 export const updatePlayerNameSchema = z.object({
-  name: z.string().min(1, 'プレイヤー名は必須です').max(20, 'プレイヤー名は20文字以内で入力してください'),
+  name: z
+    .string()
+    .min(1, 'プレイヤー名は必須です')
+    .max(20, 'プレイヤー名は20文字以内で入力してください'),
 })
 
 // プレイヤー権限変更用のバリデータ

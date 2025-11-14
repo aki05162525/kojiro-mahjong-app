@@ -1,6 +1,6 @@
 import { ForbiddenError, NotFoundError } from '../middleware/error-handler'
-import * as playersRepo from '../repositories/players'
 import * as leaguesRepo from '../repositories/leagues'
+import * as playersRepo from '../repositories/players'
 
 // プレイヤー名更新
 export async function updatePlayerName(
