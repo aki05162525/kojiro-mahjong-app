@@ -33,23 +33,27 @@ import type { AppType } from '@/src/server/routes'
 export const apiClient = hc<AppType>('http://localhost:3000')
 ```
 
-**本番環境用の設定（オプション）:**
+**本番環境用の設定（推奨）:**
+
+環境変数を使用することで、デプロイ環境ごとに柔軟に設定できます。
 
 ```typescript
 import { hc } from 'hono/client'
 import type { AppType } from '@/src/server/routes'
 
-// 環境に応じたベースURLの取得
-const getBaseUrl = () => {
-  // ブラウザ環境の場合は現在のオリジンを使用
-  if (typeof window !== 'undefined') {
-    return window.location.origin
-  }
-  // サーバー環境の場合はデフォルト
-  return 'http://localhost:3000'
-}
+// 環境変数からベースURLを取得（推奨）
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
-export const apiClient = hc<AppType>(getBaseUrl())
+export const apiClient = hc<AppType>(baseUrl)
+```
+
+**環境変数の設定例:**
+```bash
+# .env.local
+NEXT_PUBLIC_API_URL=http://localhost:3000
+
+# Vercel本番環境
+NEXT_PUBLIC_API_URL=https://your-domain.com
 ```
 
 ### 実装のポイント
@@ -63,8 +67,9 @@ export const apiClient = hc<AppType>(getBaseUrl())
    - これにより、`apiClient.api.leagues.$get()` のようなメソッドチェーンで型安全性が保証されます
 
 3. **ベースURL**
-   - 開発環境では `http://localhost:3000` を使用
-   - 本番環境では環境変数や `window.location.origin` を使用することを推奨
+   - 環境変数 `NEXT_PUBLIC_API_URL` を使用することを推奨
+   - 開発環境では `http://localhost:3000`、本番環境ではデプロイ先のURLを設定
+   - 環境変数を使うことで、プロキシ経由のアクセスやデプロイ環境の違いに柔軟に対応できる
 
 ### テスト方法
 
@@ -167,6 +172,9 @@ export const useLeague = (leagueId: string) => {
 
 /**
  * リーグを作成
+ *
+ * Hono RPCの型推論により、data引数の型は自動的に推論されます。
+ * より明示的に型を定義したい場合は、InferRequestTypeを使用できます。
  */
 export const useCreateLeague = () => {
   const queryClient = useQueryClient()
@@ -178,7 +186,7 @@ export const useCreateLeague = () => {
       players: Array<{ name: string }>
     }) => {
       const res = await apiClient.api.leagues.$post({
-        json: data,
+        json: data, // Hono RPCが型をチェック
       })
       if (!res.ok) {
         throw new Error('Failed to create league')
@@ -186,11 +194,21 @@ export const useCreateLeague = () => {
       return await res.json()
     },
     onSuccess: () => {
-      // リーグ一覧のキャッシュを無効化して再取得
+      // リーグ一覧のキャッシュを無効化（['leagues']で始まるすべてのキーが対象）
       queryClient.invalidateQueries({ queryKey: ['leagues'] })
     },
   })
 }
+
+/**
+ * 型をより明示的に定義する方法（オプション）:
+ *
+ * import type { InferRequestType } from 'hono/client'
+ *
+ * type CreateLeagueRequest = InferRequestType<typeof apiClient.api.leagues.$post>['json']
+ *
+ * mutationFn: async (data: CreateLeagueRequest) => { ... }
+ */
 
 /**
  * リーグを更新
@@ -215,9 +233,8 @@ export const useUpdateLeague = () => {
       }
       return await res.json()
     },
-    onSuccess: (_, variables) => {
-      // 該当リーグとリーグ一覧のキャッシュを無効化
-      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] })
+    onSuccess: () => {
+      // ['leagues']で始まるすべてのクエリを無効化（['leagues', id]も含む）
       queryClient.invalidateQueries({ queryKey: ['leagues'] })
     },
   })
@@ -268,9 +285,8 @@ export const useUpdateLeagueStatus = () => {
       }
       return await res.json()
     },
-    onSuccess: (_, variables) => {
-      // 該当リーグとリーグ一覧のキャッシュを無効化
-      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] })
+    onSuccess: () => {
+      // ['leagues']で始まるすべてのクエリを無効化（['leagues', id]も含む）
       queryClient.invalidateQueries({ queryKey: ['leagues'] })
     },
   })
@@ -361,7 +377,9 @@ export const useUpdateLeagueStatus = () => {
 
 **重要な注意点:**
 - React Query v5 では React 18.0 以降が必要です
-- v5 では `useQuery` のコールバック（`onSuccess`, `onError`）が削除されました。代わりに `useMutation` のコールバックを使用してください
+- v5 では `useQuery` のコールバック（`onSuccess`, `onError`）が削除されました
+  - クエリ結果に応じた副作用（トースト通知等）は `useEffect` で `isSuccess` や `isError` を監視して実装します
+  - `useMutation` のコールバックは引き続き使用可能です
 - キャッシュ管理には `queryClient.invalidateQueries` または `queryClient.setQueryData` を使用します
 
 ---
@@ -388,7 +406,7 @@ export function Providers({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000, // 1分
-            refetchOnWindowFocus: false,
+            refetchOnWindowFocus: false, // 開発中の頻繁なリフェッチを避けるため無効化
           },
         },
       }),

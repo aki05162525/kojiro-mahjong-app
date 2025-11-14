@@ -153,7 +153,13 @@ const app = new OpenAPIHono<AuthContext>()
 // すべてのルートに認証ミドルウェアを適用
 app.use('*', authMiddleware)
 
-// スキーマ定義
+// 共通スキーマ定義
+const ErrorSchema = z.object({
+  error: z.string().openapi({ example: 'UnauthorizedError' }),
+  message: z.string().openapi({ example: '認証が必要です' }),
+  statusCode: z.number().openapi({ example: 401 }),
+}).openapi('Error')
+
 const LeagueSchema = z.object({
   id: z.string().uuid().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
   name: z.string().openapi({ example: '2025年春リーグ' }),
@@ -186,11 +192,7 @@ const getLeaguesRoute = createRoute({
     401: {
       content: {
         'application/json': {
-          schema: z.object({
-            error: z.string(),
-            message: z.string(),
-            statusCode: z.number(),
-          }),
+          schema: ErrorSchema, // 共通エラースキーマを再利用
         },
       },
       description: '認証エラー',
@@ -217,7 +219,11 @@ export default app
 - `createRoute` でルート定義
 - `app.openapi()` でルート実装
 - Zodスキーマに `.openapi()` を使ってメタデータを追加
+- 共通の `ErrorSchema` を定義して、すべてのエラーレスポンスで再利用
 - 既存のルート（`app.get()`, `app.post()` 等）と共存可能
+
+**ルーティング設計について:**
+現在、playersRoutes は `/leagues` パスにマウントされています。これは既存の設計であり、OpenAPI導入時もこの構造を維持します。ルーティング構造の変更は別のissueとして扱います。
 
 ---
 
