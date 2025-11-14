@@ -217,9 +217,8 @@ export const useUpdateLeague = () => {
       }
       return await res.json()
     },
-    onSuccess: (_, variables) => {
-      // 該当リーグとリーグ一覧のキャッシュを無効化
-      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] })
+    onSuccess: () => {
+      // リーグ関連のクエリ（一覧・詳細）を一括無効化
       queryClient.invalidateQueries({ queryKey: ['leagues'] })
     },
   })
@@ -270,9 +269,8 @@ export const useUpdateLeagueStatus = () => {
       }
       return await res.json()
     },
-    onSuccess: (_, variables) => {
-      // 該当リーグとリーグ一覧のキャッシュを無効化
-      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] })
+    onSuccess: () => {
+      // リーグ関連のクエリ（一覧・詳細）を一括無効化
       queryClient.invalidateQueries({ queryKey: ['leagues'] })
     },
   })
