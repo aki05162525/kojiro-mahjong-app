@@ -423,9 +423,10 @@ const data = await res.json()  // 型推論が効く
    - JSONバリデーションには `Content-Type: application/json` が必須
    - フロントエンドで必ずヘッダーを設定する
 
-2. **ヘッダー名は小文字**
-   - `authorization` ✅
-   - `Authorization` ❌
+2. **Authorizationヘッダー**
+   - HTTPヘッダーは大文字小文字を区別しません（RFC 7230）
+   - 既存実装どおり `Authorization: Bearer <token>` で送信すればOK
+   - `c.req.header('Authorization')` で取得可能（既存の認証ミドルウェアと同じ）
 
 3. **型推論が効かない**
    - `z` を `@hono/zod-openapi` からインポートしているか確認
