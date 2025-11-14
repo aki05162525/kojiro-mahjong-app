@@ -35,39 +35,59 @@ bun run db:studio    # Open Drizzle Studio
 Route (Hono) → Service (Business Logic) → Repository (Data Access) → Database (Drizzle ORM)
 ```
 
-**Planned directory structure (not yet implemented):**
-- `src/server/routes/` - Hono route definitions
-- `src/server/services/` - Business logic layer
-- `src/server/repositories/` - Database access layer
+**Directory structure:**
+- `src/server/routes/` - Hono route definitions (function-based)
+- `src/server/services/` - Business logic layer (function-based)
+- `src/server/repositories/` - Database access layer (function-based)
 - `src/server/middleware/` - Auth and error handling
 - `src/server/validators/` - Zod validators
 
-### Frontend: Hono RPC Client + React Query
+**Architecture style:** Function-based (not class-based)
+- Use `export async function` pattern for all layers
+- Example: `export async function createLeague(userId, data) { ... }`
+
+### Frontend: Hono RPC Client + React Query (Planned)
 
 ```
 Component → React Query Hook → Hono RPC Client → API
 ```
 
-**Planned directory structure (not yet implemented):**
+**Planned directory structure:**
 - `src/client/api.ts` - Hono RPC client initialization
 - `src/client/hooks/` - React Query hooks
 
-### Current API Entry Point
+### API Entry Points
 
-`app/api/[...route]/route.ts` - Hono app with `/api` basePath
+1. **Route assembly:** `src/server/routes/index.ts` - Chains all route handlers
+2. **Next.js handler:** `app/api/[...route]/route.ts` - Calls `handle(app)` from hono/vercel
 
 ## Hono RPC Type Safety Pattern
 
 **Critical for end-to-end type safety:**
 
-1. **Export AppType** (`src/server/routes/index.ts`):
+1. **Route assembly in `src/server/routes/index.ts`:**
+   - Import all route handlers
+   - Chain them in ONE expression and assign to `routes`
+   - Export `AppType` from `routes` (not from `app`)
+   - Export `routes` as default (not `app`)
+
 ```typescript
+import { Hono } from 'hono'
+import leaguesRoutes from './leagues'
+import playersRoutes from './players'
+
+const app = new Hono().basePath('/api')
+
+// ★ Chain ALL routes in ONE expression
 const routes = app
   .route('/leagues', leaguesRoutes)
-  .route('/players', playersRoutes)
-  // Chain ALL routes in ONE expression
+  .route('/leagues', playersRoutes)
 
-export type AppType = typeof routes  // Must be from chained routes
+// ★ Export type from chained routes
+export type AppType = typeof routes
+
+// ★ Export routes as default (not app)
+export default routes
 ```
 
 2. **RPC Client** (`src/client/api.ts`):
@@ -125,17 +145,23 @@ const data = await res.json()  // Fully type-safe
 
 ## API Design Principles
 
-**Authentication:**
-- Uses Supabase Auth (JWT)
-- All endpoints require authentication (marked with 🔒 in docs)
+### Authentication & Context
 
-**Validation:**
-- Use Zod validators in `src/server/validators/`
-- League names: 1-20 characters
-- Player names: 1-20 characters
-- Player count: must be exactly 8 or 16
+**Middleware:** `src/server/middleware/auth.ts`
+- Uses Supabase Auth (JWT validation)
+- All API endpoints require authentication
+- Sets `userId` in context: `c.set('userId', data.user.id)`
+- In routes, retrieve with: `const userId = c.get('userId')`
+- ⚠️ **Important:** Context has `userId` (string), NOT `user` (object)
 
-**Error responses:**
+### Error Handling
+
+**Custom error classes** (`src/server/middleware/error-handler.ts`):
+- `NotFoundError` - 404 errors
+- `ForbiddenError` - 403 errors
+- Throw these in service layer, middleware handles response
+
+**Error response format:**
 ```typescript
 {
   error: string,      // Error type
@@ -143,6 +169,34 @@ const data = await res.json()  // Fully type-safe
   statusCode: number  // HTTP status code
 }
 ```
+
+**Pattern:** Service layer throws errors, no try-catch needed in routes
+```typescript
+// Service layer
+export async function deleteLeague(leagueId: string, userId: string) {
+  const league = await findLeagueById(leagueId)
+  if (!league) throw new NotFoundError('リーグが見つかりません')
+  if (!hasAdminRole(league, userId)) throw new ForbiddenError('権限がありません')
+  // ...
+}
+
+// Route layer (no try-catch needed)
+app.delete('/:id', async (c) => {
+  const userId = c.get('userId')
+  await leaguesService.deleteLeague(id, userId)
+  return c.body(null, 204)
+})
+```
+
+### Validation
+
+- Use Zod validators in `src/server/validators/`
+- League names: 1-20 characters
+- Player names: 1-20 characters
+- Player count: must be exactly 8 or 16
+- League status: `'active' | 'completed' | 'deleted'` (no 'planning')
+
+### Business Logic Patterns
 
 **League creation transaction:**
 - Must create league + all players in a single transaction
@@ -153,6 +207,7 @@ const data = await res.json()  // Fully type-safe
   - League updates/deletion
   - Status changes
   - Player management (name/role updates)
+- Helper function: `hasAdminRole(league, userId)` checks if user has admin role
 
 ## Key Implementation Notes
 
@@ -167,31 +222,47 @@ const data = await res.json()  // Fully type-safe
 - First session: All tables are `first` rank, players randomly assigned
 - Subsequent sessions: Tables ranked by performance (上卓/下卓), players redistributed
 
-### Planned Endpoints (Issue #22)
+### Implemented Endpoints
 
-**League Management:**
-- `POST /api/leagues` - Create league
-- `GET /api/leagues` - List user's leagues
-- `GET /api/leagues/:id` - Get league details
-- `PATCH /api/leagues/:id` - Update league
-- `DELETE /api/leagues/:id` - Logical delete (set status to 'deleted')
-- `PATCH /api/leagues/:id/status` - Change status
+**League Management** (src/server/routes/leagues.ts):
+- ✅ `POST /api/leagues` - Create league
+- ✅ `GET /api/leagues` - List user's leagues
+- ✅ `GET /api/leagues/:id` - Get league details
+- ✅ `PATCH /api/leagues/:id` - Update league
+- ✅ `DELETE /api/leagues/:id` - Logical delete (set status to 'deleted')
+- ✅ `PATCH /api/leagues/:id/status` - Change status
 
-**Player Management:**
-- `PATCH /api/leagues/:id/players/:playerId` - Update player name
-- `PATCH /api/leagues/:id/players/:playerId/role` - Change player role (admin only)
+**Player Management** (planned):
+- ⏳ `PATCH /api/leagues/:id/players/:playerId` - Update player name
+- ⏳ `PATCH /api/leagues/:id/players/:playerId/role` - Change player role (admin only)
 
 ## Documentation References
 
 - `docs/api-design.md` - Complete API specification
 - `docs/directory-structure.md` - Hono RPC architecture guide
-- `docs/issues/issue-06-implement-league-api.md` - Current implementation tasks
+- `docs/issues/issue-22-implement-league-api.md` - API implementation roadmap
+- `docs/step3-remaining-endpoints-tasks.md` - Current implementation tasks
 - [Hono RPC Documentation](https://hono.dev/guides/rpc)
 
 ## Development Workflow
 
-1. Database changes: Update `db/schema/`, run `bun run db:generate`, then `bun run db:push`
-2. API implementation: Follow 3-layer pattern (Route → Service → Repository)
-3. Type safety: Always chain routes in one expression for RPC type inference
-4. Validation: Define Zod schemas in `validators/` before implementing routes
-5. Testing: Use Drizzle Studio (`bun run db:studio`) for database inspection
+### Adding New API Endpoints
+
+1. **Validator** (`src/server/validators/`): Define Zod schemas
+2. **Repository** (`src/server/repositories/`): Add database access functions
+3. **Service** (`src/server/services/`): Implement business logic
+4. **Route** (`src/server/routes/`): Define HTTP endpoints
+5. **Route Assembly** (`src/server/routes/index.ts`): Chain new route to `routes`
+
+### Database Schema Changes
+
+1. Update schema in `db/schema/`
+2. Generate migration: `bun run db:generate`
+3. Apply migration: `bun run db:migrate` or `bun run db:push` (local)
+4. Verify with Drizzle Studio: `bun run db:studio`
+
+### Code Quality
+
+- Run `bun run lint` before committing
+- Pre-commit hook auto-runs `bun run lint:fix` on staged files
+- Pre-push hook runs `bun run lint` on all files
