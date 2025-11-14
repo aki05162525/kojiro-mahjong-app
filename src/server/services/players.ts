@@ -1,6 +1,6 @@
 import { ForbiddenError, NotFoundError } from '../middleware/error-handler'
-import * as leaguesRepo from '../repositories/leagues'
 import * as playersRepo from '../repositories/players'
+import * as leaguesService from '../services/leagues'
 
 // プレイヤー名更新
 export async function updatePlayerName(
@@ -9,7 +9,9 @@ export async function updatePlayerName(
   userId: string,
   name: string,
 ) {
-  await verifyAdminRole(leagueId, userId)
+  // 管理者権限チェック（共通ヘルパーを使用）
+  await leaguesService.findLeagueAndVerifyAdmin(leagueId, userId)
+
   const player = await playersRepo.updatePlayerName(leagueId, playerId, name)
 
   if (!player) {
@@ -26,35 +28,19 @@ export async function updatePlayerRole(
   userId: string,
   role: 'admin' | 'scorer' | 'viewer' | null,
 ) {
-  await verifyAdminRole(leagueId, userId)
+  // 管理者権限チェックとリーグ情報の取得（1回のDBクエリ）
+  const league = await leaguesService.findLeagueAndVerifyAdmin(leagueId, userId)
 
-  // プレイヤーがユーザーと紐づいているか確認
-  const player = await playersRepo.findPlayerById(leagueId, playerId)
+  // リーグ情報からプレイヤーを検索（追加のDBクエリ不要）
+  const playerToUpdate = league.players.find((p) => p.id === playerId)
 
-  if (!player) {
+  if (!playerToUpdate) {
     throw new NotFoundError('プレイヤーが見つかりません')
   }
 
-  if (!player.userId && role !== null) {
+  if (!playerToUpdate.userId && role !== null) {
     throw new ForbiddenError('ユーザーと紐づいていないプレイヤーには権限を付与できません')
   }
 
   return await playersRepo.updatePlayerRole(leagueId, playerId, role)
-}
-
-// 管理者権限チェック
-async function verifyAdminRole(leagueId: string, userId: string) {
-  const league = await leaguesRepo.findLeagueById(leagueId)
-
-  if (!league) {
-    throw new NotFoundError('リーグが見つかりません')
-  }
-
-  const hasAdmin = league.players.some(
-    (player) => player.userId === userId && player.role === 'admin',
-  )
-
-  if (!hasAdmin) {
-    throw new ForbiddenError('この操作を実行する権限がありません')
-  }
 }

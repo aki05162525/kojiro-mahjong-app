@@ -64,8 +64,8 @@ export async function updateLeagueStatus(
   return await leaguesRepo.updateLeagueStatus(leagueId, status)
 }
 
-// リーグを取得し、管理者権限を検証するヘルパー
-async function findLeagueAndVerifyAdmin(leagueId: string, userId: string) {
+// リーグを取得し、管理者権限を検証するヘルパー（他のサービスからも利用可能）
+export async function findLeagueAndVerifyAdmin(leagueId: string, userId: string) {
   const league = await leaguesRepo.findLeagueById(leagueId)
 
   if (!league) {

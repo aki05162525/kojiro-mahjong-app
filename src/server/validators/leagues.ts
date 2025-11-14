@@ -30,7 +30,7 @@ export const updateLeagueStatusSchema = z.object({
 
 // プレイヤーID用のパラメータバリデータ
 export const playerParamSchema = z.object({
-  id: z.string().uuid(),
+  leagueId: z.string().uuid(),
   playerId: z.string().uuid(),
 })
 

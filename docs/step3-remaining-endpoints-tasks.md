@@ -447,7 +447,7 @@ curl -X PATCH "http://localhost:3000/api/leagues/{league-id}/players/{player-id}
   - [ ] リポジトリ作成（`src/server/repositories/players.ts`）
   - [ ] サービス作成（`src/server/services/players.ts`）
   - [ ] ルート作成（`src/server/routes/players.ts`）
-  - [ ] ルート統合（`app/api/[...route]/route.ts`）
+  - [ ] ルート統合（`src/server/routes/index.ts`）
 - [ ] タスク2: プレイヤー権限変更が完了（タスク1に含まれる）
 - [ ] `bun run lint` が通る
 - [ ] 各エンドポイントの動作確認が完了
