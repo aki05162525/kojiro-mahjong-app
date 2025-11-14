@@ -123,6 +123,7 @@ bun add @tanstack/react-query-devtools
 
 ```typescript
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { InferRequestType } from 'hono/client'
 import { apiClient } from '../api'
 
 // ------------------------
@@ -138,9 +139,9 @@ export const useLeagues = () => {
     queryFn: async () => {
       const res = await apiClient.api.leagues.$get()
       if (!res.ok) {
-        // バックエンドからの構造化エラーレスポンスを取得
+        // バックエンドからの構造化エラーレスポンス ({ error, message, statusCode }) をそのままスロー
         const error = await res.json()
-        throw new Error(error.message || 'Failed to fetch leagues')
+        throw error
       }
       return await res.json()
     },
@@ -160,7 +161,7 @@ export const useLeague = (leagueId: string) => {
       })
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || 'Failed to fetch league')
+        throw error
       }
       return await res.json()
     },
@@ -176,24 +177,22 @@ export const useLeague = (leagueId: string) => {
 /**
  * リーグを作成
  *
- * Hono RPCの型推論により、data引数の型は自動的に推論されます。
- * より明示的に型を定義したい場合は、InferRequestTypeを使用できます。
+ * InferRequestTypeを使用してバックエンドのスキーマから型を自動推論します。
+ * これにより、バックエンドのスキーマ変更が自動的にフロントエンドに反映されます。
  */
 export const useCreateLeague = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: {
-      name: string
-      description?: string
-      players: Array<{ name: string }>
-    }) => {
+    mutationFn: async (
+      data: InferRequestType<typeof apiClient.api.leagues.$post>['json'],
+    ) => {
       const res = await apiClient.api.leagues.$post({
-        json: data, // Hono RPCが型をチェック
+        json: data,
       })
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || 'Failed to create league')
+        throw error
       }
       return await res.json()
     },
@@ -203,16 +202,6 @@ export const useCreateLeague = () => {
     },
   })
 }
-
-/**
- * 型をより明示的に定義する方法（オプション）:
- *
- * import type { InferRequestType } from 'hono/client'
- *
- * type CreateLeagueRequest = InferRequestType<typeof apiClient.api.leagues.$post>['json']
- *
- * mutationFn: async (data: CreateLeagueRequest) => { ... }
- */
 
 /**
  * リーグを更新
@@ -226,7 +215,7 @@ export const useUpdateLeague = () => {
       data,
     }: {
       leagueId: string
-      data: { name?: string; description?: string }
+      data: InferRequestType<typeof apiClient.api.leagues[':id'].$patch>['json']
     }) => {
       const res = await apiClient.api.leagues[':id'].$patch({
         param: { id: leagueId },
@@ -234,7 +223,7 @@ export const useUpdateLeague = () => {
       })
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || 'Failed to update league')
+        throw error
       }
       return await res.json()
     },
@@ -258,7 +247,7 @@ export const useDeleteLeague = () => {
       })
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || 'Failed to delete league')
+        throw error
       }
     },
     onSuccess: () => {
@@ -277,18 +266,20 @@ export const useUpdateLeagueStatus = () => {
   return useMutation({
     mutationFn: async ({
       leagueId,
-      status,
+      data,
     }: {
       leagueId: string
-      status: 'active' | 'completed' | 'deleted'
+      data: InferRequestType<
+        typeof apiClient.api.leagues[':id'].status.$patch
+      >['json']
     }) => {
       const res = await apiClient.api.leagues[':id'].status.$patch({
         param: { id: leagueId },
-        json: { status },
+        json: data,
       })
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.message || 'Failed to update league status')
+        throw error
       }
       return await res.json()
     },
@@ -313,13 +304,18 @@ export const useUpdateLeagueStatus = () => {
 
 3. **エラーハンドリング（重要）**
    - `res.ok` で HTTPステータスコードをチェック
-   - バックエンドからの構造化エラーレスポンス（`{ error, message, statusCode }`）を取得
-   - `error.message` を使用して具体的なエラーメッセージを表示
-   - これにより、デバッグやユーザーへの分かりやすいエラー表示が可能になる
+   - バックエンドからの構造化エラーレスポンス（`{ error, message, statusCode }`）を**そのまま**スロー
+   - `throw error` とすることで、エラーオブジェクト全体を保持
+   - これにより、UIコンポーネントで `error.message` や `error.statusCode` を利用した詳細なエラー表示が可能
+   - ❌ 悪い例: `throw new Error(error.message)` - エラーオブジェクトの構造が失われる
+   - ✅ 良い例: `throw error` - 完全なエラー情報を保持
 
-4. **型推論**
-   - Hono RPCにより、`json` プロパティや `param` プロパティの型が自動推論される
-   - TypeScriptの補完が効くため、タイプミスを防げる
+4. **型推論 - `InferRequestType` の使用**
+   - Hono RPCの `InferRequestType` を使用して、バックエンドのスキーマから型を自動推論
+   - バックエンドでスキーマを変更した際、フロントエンドに自動的に反映される
+   - 例: `InferRequestType<typeof apiClient.api.leagues.$post>['json']`
+   - これにより、手動で型を定義する必要がなくなり、型の不整合を防止できる
+   - `param` プロパティの型も自動推論される
 
 5. **`enabled` オプション**
    - 条件付きでクエリを実行する場合に使用
