@@ -1,9 +1,9 @@
-import { Hono } from 'hono'
+import { OpenAPIHono } from '@hono/zod-openapi'
 import { errorHandler } from '../middleware/error-handler'
 import leaguesRoutes from './leagues'
 import playersRoutes from './players'
 
-const app = new Hono().basePath('/api')
+const app = new OpenAPIHono().basePath('/api')
 
 // エラーハンドラーを登録
 app.onError(errorHandler)
