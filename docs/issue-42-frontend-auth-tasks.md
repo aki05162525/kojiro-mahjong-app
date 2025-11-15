@@ -292,7 +292,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -364,19 +364,24 @@ export default function LoginPage() {
 
 ### 実装のポイント
 
-1. **`signInWithPassword` メソッド**
+1. **Supabase クライアントのメモ化**
+   - `useState(() => createClient())` で初期化時に一度だけクライアントを生成
+   - 再レンダリング時に新しいインスタンスが作られるのを防ぐ
+   - パフォーマンス向上とメモリ効率化
+
+2. **`signInWithPassword` メソッド**
    - Supabase Auth の標準的なメール+パスワード認証
    - 戻り値: `{ data, error }` の形式
 
-2. **エラーハンドリング**
+3. **エラーハンドリング**
    - `error.message` でユーザーフレンドリーなエラーメッセージを表示
    - ローディング状態を管理してボタンを無効化
 
-3. **リダイレクト処理**
+4. **リダイレクト処理**
    - ログイン成功後は `router.push('/')` でホームへ
    - `router.refresh()` でサーバーコンポーネントを再レンダリング
 
-4. **スタイリング**
+5. **スタイリング**
    - 簡易的なインラインスタイルを使用
    - 後で Tailwind CSS や CSS Modules に置き換え可能
 
@@ -531,13 +536,14 @@ export const apiClient = hc<AppType>(getBaseUrl(), {
 'use client'
 
 import { createClient } from '@/src/client/supabase'
+import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const getUser = async () => {
@@ -576,15 +582,24 @@ export default function Home() {
 
 ### 実装のポイント
 
-1. **`signOut()` メソッド**
+1. **Supabase クライアントのメモ化**
+   - `useState(() => createClient())` で初期化時に一度だけクライアントを生成
+   - 再レンダリング時に新しいインスタンスが作られるのを防ぐ
+   - パフォーマンス向上とメモリ効率化
+
+2. **型安全な User 型の使用**
+   - `User | null` で型定義（Supabase が提供する型）
+   - `any` を避けて型安全性を向上
+
+3. **`signOut()` メソッド**
    - Supabase Auth のセッションを破棄
    - Cookie からトークンが削除される
 
-2. **ユーザー情報の表示**
+4. **ユーザー情報の表示**
    - `useEffect` でログイン状態を確認
    - ログインしていない場合はログインボタンを表示
 
-3. **リダイレクト処理**
+5. **リダイレクト処理**
    - ログアウト後は `/login` にリダイレクト
    - `router.refresh()` でサーバーコンポーネントを再レンダリング
 
