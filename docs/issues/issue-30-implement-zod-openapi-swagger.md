@@ -36,24 +36,36 @@
 
 ## 実装方針
 
-### フェーズ 1: 最小構成で導入
+### アーキテクチャ: 2 つの Hono アプリを並走させる
+
+- **RPC アプリ (`src/server/routes/**`)**  
+  - `Hono` と `@hono/zod-validator` を使用  
+  - React Query などのフロントエンドから型安全に呼ばれる  
+  - `AppType` をエクスポートし、`hc<AppType>` でクライアントを生成
+- **OpenAPI アプリ (`src/server/openapi/**`)**  
+  - `OpenAPIHono` と `@hono/zod-openapi` を使用  
+  - Swagger UI や外部クライアント向け  
+  - `/api/doc`, `/api/ui`, `/api/leagues` (OpenAPI 実装) などを提供
+
+両アプリは Next.js API ルート (`app/api/[...route]/route.ts`) で同一の `Hono` インスタンスにマウントし、**RPC → OpenAPI** の順で登録する。これにより、既存の RPC 契約を壊さずに OpenAPI を追加でき、同じサービス・リポジトリ層を共有できる。
+
+### フェーズ 1: 基盤構築
 
 1. パッケージインストール
-2. OpenAPI 仕様書エンドポイント追加（`/api/doc`）
-3. Swagger UI エンドポイント追加（`/api/ui`）
-4. 1 つのエンドポイントだけ OpenAPI 対応に変換（動作確認）
+2. `src/server/openapi/index.ts` を作成し、`/api/doc` と `/api/ui` を提供
+3. Next.js API ルートで RPC アプリと OpenAPI アプリをマウント
 
-### フェーズ 2: 段階的移行
+### フェーズ 2: エンドポイント移行
 
-5. 既存のリーグ API を OpenAPI 対応に移行
-6. プレイヤー API を OpenAPI 対応に移行
-7. 認証フローの統合（Bearer Token 対応）
+4. `src/server/openapi/routes/leagues.ts` を実装し、リーグ系エンドポイントを OpenAPI 化
+5. `src/server/openapi/schemas/**` に Zod OpenAPI スキーマを配置
+6. 共通ミドルウェア・サービスを再利用して動作確認
 
-### フェーズ 3: 完全統合
+### フェーズ 3: 拡張
 
-8. すべてのエンドポイントを OpenAPI 対応に変換
-9. タグやカテゴリの整理
-10. Swagger UI のカスタマイズ
+7. プレイヤー API など残りのエンドポイントを OpenAPI で実装
+8. タグ、レスポンス例、エラーフォーマットを整備
+9. Swagger UI カスタマイズや SDK 生成を検討
 
 ---
 
@@ -72,221 +84,174 @@ bun add @hono/zod-openapi @hono/swagger-ui
 
 ---
 
-### タスク 2: OpenAPIHono への移行
+### タスク 2: OpenAPI アプリのエントリーポイント追加
 
-#### ファイル: `src/server/routes/index.ts`
-
-**変更前:**
+#### ファイル: `src/server/openapi/index.ts`
 
 ```typescript
-import { Hono } from "hono";
+import { swaggerUI } from '@hono/swagger-ui'
+import { OpenAPIHono } from '@hono/zod-openapi'
+import { errorHandler } from '../middleware/error-handler'
+import leaguesOpenAPIRoutes from './routes/leagues'
 
-const app = new Hono().basePath("/api");
-```
+const app = new OpenAPIHono().basePath('/api')
 
-**変更後:**
+app.onError(errorHandler)
 
-```typescript
-import { OpenAPIHono } from "@hono/zod-openapi";
+app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
+  type: 'http',
+  scheme: 'bearer',
+  bearerFormat: 'JWT',
+  description: 'Supabase Auth JWT token',
+})
 
-const app = new OpenAPIHono().basePath("/api");
+app.route('/leagues', leaguesOpenAPIRoutes)
+
+app.doc('/doc', {
+  openapi: '3.1.0',
+  info: {
+    version: '1.0.0',
+    title: 'Kojiro Mahjong API',
+    description: 'Mahjong league management application API',
+  },
+})
+
+app.get('/ui', swaggerUI({ url: '/api/doc' }))
+
+export default app
 ```
 
 **ポイント:**
 
-- `Hono` → `OpenAPIHono` に変更
-- 既存のルートはそのまま動作する（互換性あり）
-- 新しいルートから段階的に OpenAPI 対応に移行
+- RPC 用エントリーポイント（`src/server/routes/index.ts`）には手を入れない
+- OpenAPI 固有のコードは `src/server/openapi/**` に閉じ込める
+- `/api/doc` と `/api/ui` は OpenAPI アプリから提供する
 
 ---
 
 ### タスク 3: OpenAPI 仕様書エンドポイント追加
 
-#### ファイル: `src/server/routes/index.ts`
+#### ファイル: `app/api/[...route]/route.ts`
 
 ```typescript
-import { OpenAPIHono } from "@hono/zod-openapi";
-import { swaggerUI } from "@hono/swagger-ui";
-import { Hono } from "hono";
-import { errorHandler } from "../middleware/error-handler";
-import leaguesRoutes from "./leagues";
-import playersRoutes from "./players";
+import { Hono } from 'hono'
+import { handle } from 'hono/vercel'
+import openapiApp from '@/src/server/openapi'
+import rpcApp from '@/src/server/routes'
 
-const app = new OpenAPIHono().basePath("/api");
+const app = new Hono()
 
-// エラーハンドラーを登録
-app.onError(errorHandler);
+// ★ ルート解決は登録順なので RPC → OpenAPI の順でマウント
+app.route('/', rpcApp)
+app.route('/', openapiApp)
 
-// セキュリティスキームを登録
-app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
-  type: "http",
-  scheme: "bearer",
-  bearerFormat: "JWT",
-  description: "Supabase AuthのJWTトークンを使用",
-});
-
-// --- RPC用のルートを定義（ドキュメントエンドポイントと分離） ---
-const rpcRoutes = new Hono()
-  .route("/leagues", leaguesRoutes)
-  .route("/leagues", playersRoutes);
-
-// ★ RPCクライアント用の型をエクスポート（ドキュメントエンドポイントを含まない）
-export type AppType = typeof rpcRoutes;
-
-// メインアプリにRPCルートを登録
-app.route("/", rpcRoutes);
-
-// --- ドキュメント用エンドポイント（RPC型定義から除外） ---
-// OpenAPI仕様書エンドポイント
-app.doc("/doc", {
-  openapi: "3.1.0",
-  info: {
-    version: "1.0.0",
-    title: "Kojiro Mahjong API",
-    description: "麻雀リーグ管理アプリケーションのAPI",
-  },
-});
-
-// Swagger UIエンドポイント
-app.get("/ui", swaggerUI({ url: "/api/doc" }));
-
-export default app;
+export const GET = handle(app)
+export const POST = handle(app)
+export const PATCH = handle(app)
+export const DELETE = handle(app)
 ```
 
-**アクセス先:**
+**ポイント:**
 
-- OpenAPI JSON: `http://localhost:3000/api/doc`
-- Swagger UI: `http://localhost:3000/api/ui`
+- RPC ルートを先に登録して既存クライアントの挙動を維持
+- OpenAPI 専用ルート（`/api/doc`, `/api/ui`）は RPC 側に存在しないため自然に OpenAPI アプリへフォールスルー
+- `AppType` は `src/server/routes/index.ts` からエクスポートし続け、RPC クライアントのみを型安全に保つ
 
 ---
 
 ### タスク 4: サンプルルートの OpenAPI 対応
 
-#### ファイル: `src/server/routes/leagues.ts`（部分的に変更）
-
-既存のルートの 1 つを OpenAPI 対応に変換して動作確認します。
+#### ファイル: `src/server/openapi/routes/leagues.ts`
 
 ```typescript
-import { createRoute, z } from "@hono/zod-openapi";
-import { OpenAPIHono } from "@hono/zod-openapi";
-import type { AuthContext } from "../middleware/auth";
-import { authMiddleware } from "../middleware/auth";
-import * as leaguesService from "../services/leagues";
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import type { AuthContext } from '../../middleware/auth'
+import { authMiddleware } from '../../middleware/auth'
+import * as leaguesService from '../../services/leagues'
+import { LeaguesResponseSchema } from '../schemas/leagues'
+import { UnauthorizedResponse } from '../schemas/common'
 
-const app = new OpenAPIHono<AuthContext>();
+const app = new OpenAPIHono<AuthContext>()
 
-// すべてのルートに認証ミドルウェアを適用
-app.use("*", authMiddleware);
+app.use('*', authMiddleware)
 
-// 共通スキーマ定義
-const ErrorSchema = z
-  .object({
-    error: z.string().openapi({ example: "UnauthorizedError" }),
-    message: z.string().openapi({ example: "認証が必要です" }),
-    statusCode: z.number().openapi({ example: 401 }),
-  })
-  .openapi("Error");
-
-const LeagueSchema = z
-  .object({
-    id: z
-      .string()
-      .uuid()
-      .openapi({ example: "123e4567-e89b-12d3-a456-426614174000" }),
-    name: z.string().openapi({ example: "2025年春リーグ" }),
-    description: z.string().nullable().openapi({ example: "毎週金曜日開催" }),
-    status: z
-      .enum(["active", "completed", "deleted"])
-      .openapi({ example: "active" }),
-    createdBy: z.string().uuid(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-  })
-  .openapi("League");
-
-const LeaguesResponseSchema = z
-  .object({
-    leagues: z.array(LeagueSchema),
-  })
-  .openapi("LeaguesResponse");
-
-// OpenAPI対応ルート定義
 const getLeaguesRoute = createRoute({
-  method: "get",
-  path: "/",
-  tags: ["leagues"],
+  method: 'get',
+  path: '/',
+  tags: ['leagues'],
+  summary: 'Get leagues list',
   security: [{ Bearer: [] }],
   responses: {
     200: {
       content: {
-        "application/json": {
+        'application/json': {
           schema: LeaguesResponseSchema,
         },
       },
-      description: "ユーザーが参加しているリーグ一覧を取得",
+      description: 'Leagues the user participates in',
     },
-    401: {
-      content: {
-        "application/json": {
-          schema: ErrorSchema, // 共通エラースキーマを再利用
-        },
-      },
-      description: "認証エラー",
-    },
+    401: UnauthorizedResponse,
   },
-});
+})
 
-// ルート実装
 app.openapi(getLeaguesRoute, async (c) => {
-  const userId = c.get("userId");
-  const result = await leaguesService.getLeaguesByUserId(userId);
-  return c.json(result, 200);
-});
+  const userId = c.get('userId')
+  const result = await leaguesService.getLeaguesByUserId(userId)
+  return c.json(result, 200)
+})
 
-// 既存のルートもそのまま維持（段階的移行のため）
-// app.post('/', ...)
-// app.get('/:id', ...)
-// ...
-
-export default app;
+export default app
 ```
 
 **ポイント:**
 
-- `createRoute` でルート定義
-- `app.openapi()` でルート実装
-- Zod スキーマに `.openapi()` を使ってメタデータを追加
-- 共通の `ErrorSchema` を定義して、すべてのエラーレスポンスで再利用
-- 既存のルート（`app.get()`, `app.post()` 等）と共存可能
-
-**ルーティング設計について:**
-現在、playersRoutes は `/leagues` パスにマウントされています。これは既存の設計であり、OpenAPI 導入時もこの構造を維持します。ルーティング構造の変更は別の issue として扱います。
-
-**AppType 型定義の重要性:**
-
-- `AppType` は `rpcRoutes` から生成されます（ドキュメントエンドポイントを含まない）
-- これにより、RPC クライアントに不要なエンドポイント（`/doc`, `/ui`）が公開されるのを防ぎます
-- 関心事の明確な分離：RPC 用ルート vs ドキュメント用ルート
+- RPC 実装とは別のファイルに OpenAPI 実装を配置
+- ミドルウェア、サービス、リポジトリは両アプリで共有
+- `createRoute` でスキーマ付きの定義を行い、`app.openapi` で実装
+- リクエスト／レスポンススキーマは `src/server/openapi/schemas/**` から import する
 
 ---
 
 ### タスク 5: バリデーションスキーマの再利用
 
-既存の `src/server/validators/leagues.ts` の Zod スキーマを再利用できます。
+`src/server/validators/**` では引き続き `zod` を使用し、RPC バリデーションを維持する。一方、OpenAPI 専用のスキーマは `@hono/zod-openapi` を使って `src/server/openapi/schemas/**` に配置する。
 
-**変更前:**
-
-```typescript
-import { z } from "zod";
-```
-
-**変更後:**
+#### ファイル: `src/server/openapi/schemas/leagues.ts`
 
 ```typescript
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi'
+
+export const LeagueSchema = z
+  .object({
+    id: z.string().uuid().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+    name: z.string().min(1).max(20).openapi({ example: '2025 Spring League' }),
+    description: z.string().nullable().openapi({ example: 'Every Friday evening' }),
+    status: z.enum(['active', 'completed', 'deleted']).openapi({ example: 'active' }),
+    createdBy: z.string().uuid(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    players: z.array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string().min(1).max(20),
+        role: z.enum(['admin', 'member']),
+      })
+    ),
+  })
+  .openapi('League')
+
+export const LeaguesResponseSchema = z
+  .object({
+    leagues: z.array(LeagueSchema),
+  })
+  .openapi('LeaguesResponse')
 ```
 
-これにより、既存のバリデーションスキーマに `.openapi()` メソッドを追加するだけで OpenAPI 対応できます。
+**ポイント:**
+
+- OpenAPI スキーマは `.openapi()` メタデータを持つ別ファイル
+- RPC バリデーターを壊さずにドキュメント専用の型を提供できる
+- `schemas/common.ts` などで `UnauthorizedResponse` などを定義するとルートから再利用しやすい
 
 ---
 
@@ -295,9 +260,10 @@ import { z } from "@hono/zod-openapi";
 ### ステップ 1: インフラ準備（必須）
 
 - [ ] パッケージインストール
-- [ ] `OpenAPIHono` への移行
+- [ ] `src/server/openapi/index.ts` の作成
 - [ ] OpenAPI 仕様書エンドポイント（`/api/doc`）
 - [ ] Swagger UI エンドポイント（`/api/ui`）
+- [ ] Next.js API ルートでのマウント順序（RPC → OpenAPI）
 - [ ] セキュリティスキーム登録
 
 ### ステップ 2: 動作確認（1 エンドポイントのみ）
@@ -334,16 +300,19 @@ import { z } from "@hono/zod-openapi";
 **重要:** OpenAPI 対応ルートと Hono RPC は共存できます。
 
 ```typescript
-const app = new OpenAPIHono().basePath("/api");
+// src/server/routes/index.ts
+const rpcApp = new Hono().basePath('/api')
+const routes = rpcApp
+  .route('/leagues', leaguesRoutes)
+  .route('/players', playersRoutes)
 
-// OpenAPI対応ルート
-app.openapi(getLeaguesRoute, handler);
+export type AppType = typeof routes
+export default routes
 
-// 従来のHono RPCルート（そのまま動作）
-app.get("/legacy", (c) => c.json({ message: "OK" }));
-
-// 型エクスポート（Hono RPC用）
-export type AppType = typeof app; // ← 引き続き型推論が機能
+// app/api/[...route]/route.ts
+const handlerApp = new Hono()
+handlerApp.route('/', rpcApp)   // RPC first
+handlerApp.route('/', openapiApp) // OpenAPI second
 ```
 
 ### 段階的移行の利点
@@ -423,37 +392,19 @@ const data = await res.json(); // 型推論が効く
 
 ### 必須の変更点
 
-1. **Zod のインポート元を変更**
+1. **ディレクトリ分離を徹底**  
+   - RPC: `src/server/routes/**` + `zod` バリデーター  
+   - OpenAPI: `src/server/openapi/**` + `@hono/zod-openapi`
 
-   ```typescript
-   // 変更前
-   import { z } from "zod";
+2. **`AppType` は RPC ルートからのみ生成**  
+   - OpenAPI 用エンドポイント（`/api/doc`, `/api/ui`）を RPC 型に含めない
 
-   // 変更後
-   import { z } from "@hono/zod-openapi";
-   ```
+3. **Next.js API ルートでは RPC → OpenAPI の順番で `app.route('/', ...)`**  
+   - ルーティング解決順を間違えると Swagger UI が到達しなくなる
 
-2. **Hono クラスの変更**
-
-   ```typescript
-   // 変更前
-   import { Hono } from "hono";
-   const app = new Hono();
-
-   // 変更後
-   import { OpenAPIHono } from "@hono/zod-openapi";
-   const app = new OpenAPIHono();
-   ```
-
-3. **ルート登録メソッドの変更**
-
-   ```typescript
-   // 変更前
-   app.get("/path", handler);
-
-   // 変更後（OpenAPI対応）
-   app.openapi(route, handler);
-   ```
+4. **同じパスを重複定義しない**  
+   - RPC と OpenAPI のリクエストスキーマは一致させる  
+   - 可能であれば OpenAPI ルートから RPC ルートと同じサービス関数を呼び出し、応答の整合性を保つ
 
 ### よくある問題
 
@@ -469,8 +420,8 @@ const data = await res.json(); // 型推論が効く
    - `c.req.header('Authorization')` で取得可能（既存の認証ミドルウェアと同じ）
 
 3. **型推論が効かない**
-   - `z` を `@hono/zod-openapi` からインポートしているか確認
-   - `AppType` のエクスポートが正しいか確認
+   - RPC ルートで誤って `OpenAPIHono` や `@hono/zod-openapi` を使っていないか確認
+   - `src/server/routes/index.ts` から `AppType` をエクスポートし、フロント側では `hc<AppType>` だけを参照する
 
 ---
 
