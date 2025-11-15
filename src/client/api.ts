@@ -1,5 +1,5 @@
 import { hc } from 'hono/client'
-import type { AppType } from '@/src/server/routes'
+import type { AppType } from '../server/routes'
 
 const getBaseUrl = () => {
   if (typeof window !== 'undefined') {

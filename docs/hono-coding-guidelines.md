@@ -151,23 +151,20 @@ import * as leaguesService from '../services/leagues'
 import { createLeagueSchema } from '../validators/leagues'
 
 const app = new Hono<AuthContext>()
-
-// Apply auth middleware
-app.use('*', authMiddleware)
-
-// Define routes
-app.get('/', async (c) => {
-  const userId = c.get('userId')
-  const result = await leaguesService.getLeaguesByUserId(userId)
-  return c.json(result, 200)
-})
-
-app.post('/', zValidator('json', createLeagueSchema), async (c) => {
-  const userId = c.get('userId')
-  const data = c.req.valid('json')
-  const league = await leaguesService.createLeague(userId, data)
-  return c.json(league, 201)
-})
+  // Apply auth middleware once at the top
+  .use('*', authMiddleware)
+  // ⚠️ Always chain handlers so Hono RPC can infer schema (do NOT call methods separately)
+  .get('/', async (c) => {
+    const userId = c.get('userId')
+    const result = await leaguesService.getLeaguesByUserId(userId)
+    return c.json(result, 200)
+  })
+  .post('/', zValidator('json', createLeagueSchema), async (c) => {
+    const userId = c.get('userId')
+    const data = c.req.valid('json')
+    const league = await leaguesService.createLeague(userId, data)
+    return c.json(league, 201)
+  })
 
 export default app
 ```

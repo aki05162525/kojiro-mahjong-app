@@ -14,4 +14,4 @@ const routes = app.route('/leagues', leaguesRoutes).route('/leagues', playersRou
 // ★AppTypeをエクスポート（Hono RPCで使用、basePath含む）
 export type AppType = typeof routes
 
-export default routes
+export default app
