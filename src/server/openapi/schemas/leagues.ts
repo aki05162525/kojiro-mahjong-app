@@ -145,13 +145,19 @@ export const CreateLeagueRequestSchema = z
       description: 'League description (optional)',
     }),
     players: z
-      .array(PlayerNameSchema)
+      .union([z.array(PlayerNameSchema).length(8), z.array(PlayerNameSchema).length(16)])
       .openapi({
-        example: [{ name: 'Player 1' }, { name: 'Player 2' }],
+        example: [
+          { name: 'Player 1' },
+          { name: 'Player 2' },
+          { name: 'Player 3' },
+          { name: 'Player 4' },
+          { name: 'Player 5' },
+          { name: 'Player 6' },
+          { name: 'Player 7' },
+          { name: 'Player 8' },
+        ],
         description: 'List of players (must be exactly 8 or 16)',
-      })
-      .refine((players) => players.length === 8 || players.length === 16, {
-        message: 'プレイヤーリストは8人または16人である必要があります',
       }),
   })
   .openapi('CreateLeagueRequest')

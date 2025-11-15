@@ -7,15 +7,15 @@ export const ErrorSchema = z
   .object({
     error: z.string().openapi({
       example: 'UnauthorizedError',
-      description: 'Error type',
+      description: 'エラーの種類',
     }),
     message: z.string().openapi({
-      example: 'Authentication required',
-      description: 'Error message',
+      example: '認証が必要です',
+      description: 'エラーメッセージ',
     }),
     statusCode: z.number().openapi({
       example: 401,
-      description: 'HTTP status code',
+      description: 'HTTPステータスコード',
     }),
   })
   .openapi('Error')
@@ -29,7 +29,7 @@ export const UnauthorizedResponse = {
       schema: ErrorSchema,
     },
   },
-  description: 'Authentication error',
+  description: '認証エラー',
 }
 
 /**
@@ -41,7 +41,7 @@ export const ForbiddenResponse = {
       schema: ErrorSchema,
     },
   },
-  description: 'Forbidden - insufficient permissions',
+  description: '禁止 - 権限がありません',
 }
 
 /**
@@ -53,5 +53,5 @@ export const NotFoundResponse = {
       schema: ErrorSchema,
     },
   },
-  description: 'Resource not found',
+  description: 'リソースが見つかりません',
 }
