@@ -8,10 +8,10 @@ const app = new Hono().basePath('/api')
 // エラーハンドラーを登録
 app.onError(errorHandler)
 
-// ★すべてのルートを1つの式でチェーン（型推論に必須）
+// RPC用のルートを定義（basePath付き）
 const routes = app.route('/leagues', leaguesRoutes).route('/leagues', playersRoutes)
 
-// ★AppTypeをエクスポート（Hono RPCで使用）
+// ★AppTypeをエクスポート（Hono RPCで使用、basePath含む）
 export type AppType = typeof routes
 
 export default routes

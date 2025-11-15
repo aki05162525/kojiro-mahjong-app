@@ -120,11 +120,7 @@ export async function updateLeagueStatus(
       updatedAt: new Date(),
     })
     .where(eq(leaguesTable.id, leagueId))
-    .returning({
-      id: leaguesTable.id,
-      status: leaguesTable.status,
-      updatedAt: leaguesTable.updatedAt,
-    })
+    .returning()
 
   return updated
 }

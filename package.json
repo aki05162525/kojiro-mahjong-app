@@ -16,6 +16,8 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.5.2",
+    "@hono/zod-openapi": "^1.1.4",
     "@hono/zod-validator": "^0.7.4",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.81.1",

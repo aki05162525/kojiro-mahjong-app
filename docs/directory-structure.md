@@ -1,140 +1,55 @@
-# ディレクトリ構成ガイド（Hono RPC対応）
+# ディレクトリ構成
 
-麻雀リーグ管理アプリのディレクトリ構成
-
----
-
-## 📁 ディレクトリ構成
+## 全体構成
 
 ```
 /
 ├── app/
 │   ├── (dashboard)/               # フロントエンド画面
-│   │   ├── leagues/
-│   │   └── sessions/
-│   │
-│   └── api/[[...route]]/
-│       └── route.ts               # Honoエントリーポイント
+│   └── api/[...route]/route.ts   # Next.js APIハンドラー
 │
 ├── src/
-│   ├── server/                    # バックエンド（Hono API）
-│   │   ├── routes/
-│   │   │   ├── index.ts          # ★AppType エクスポート（最重要）
-│   │   │   ├── leagues.ts
-│   │   │   ├── players.ts
-│   │   │   ├── sessions.ts
-│   │   │   └── scores.ts
-│   │   │
-│   │   ├── services/             # ビジネスロジック
-│   │   ├── repositories/         # データアクセス
-│   │   ├── middleware/           # 認証、エラーハンドリング
-│   │   └── validators/           # Zod バリデータ
+│   ├── server/
+│   │   ├── routes/                # Hono RPCアプリ（フロントエンド用）
+│   │   ├── openapi/               # OpenAPIアプリ（ドキュメント用）
+│   │   ├── services/              # ビジネスロジック
+│   │   ├── repositories/          # データアクセス
+│   │   ├── middleware/            # 認証、エラーハンドリング
+│   │   └── validators/            # Zodバリデータ
 │   │
-│   └── client/                   # フロントエンド（APIクライアント）
-│       ├── api.ts                # ★Hono RPCクライアント（最重要）
-│       └── hooks/                # React Query hooks
-│           ├── useLeagues.ts
-│           └── ...
+│   └── client/
+│       ├── api.ts                 # Hono RPCクライアント
+│       └── hooks/                 # React Query hooks
 │
-└── db/                           # データベース
+└── db/
     ├── index.ts
-    └── schema/
+    └── schema/                    # Drizzleスキーマ
 ```
 
----
+## アーキテクチャ
 
-## 🔑 Hono RPC の3つの重要ポイント
-
-### 1. **AppTypeをエクスポート** (`src/server/routes/index.ts`)
-
-```typescript
-import { Hono } from 'hono'
-import leaguesRoutes from './leagues'
-
-const app = new Hono().basePath('/api')
-
-// ★すべてのルートを1つの式でチェーン（型推論に必須）
-const routes = app
-  .route('/leagues', leaguesRoutes)
-  .route('/players', playersRoutes)
-  .route('/sessions', sessionsRoutes)
-
-// ★AppTypeをエクスポート
-export type AppType = typeof routes
-
-export default app
-```
-
-### 2. **RPCクライアント初期化** (`src/client/api.ts`)
-
-```typescript
-import { hc } from 'hono/client'
-import type { AppType } from '@/src/server/routes'  // ★type import
-
-export const apiClient = hc<AppType>('http://localhost:3000')
-```
-
-### 3. **フロントエンドで使用** (`src/client/hooks/useLeagues.ts`)
-
-```typescript
-import { apiClient } from '../api'
-
-export function useLeagues() {
-  return useQuery({
-    queryKey: ['leagues'],
-    queryFn: async () => {
-      const res = await apiClient.api.leagues.$get()
-      return res.json()  // ★完全に型推論される
-    },
-  })
-}
-```
-
----
-
-## 🏗️ アーキテクチャ
-
-### バックエンド：3層アーキテクチャ
+### バックエンド: 3層アーキテクチャ
 
 ```
 Route → Service → Repository → Database
 ```
 
-- **Route**: ルーティング、バリデーション
-- **Service**: ビジネスロジック
-- **Repository**: データアクセス
+### デュアルAPIシステム
 
-### フロントエンド：Hono RPC + React Query
+| アプリ | 用途 | 技術 |
+|--------|------|------|
+| RPC | フロントエンド通信 | Hono + Hono RPC |
+| OpenAPI | ドキュメント | OpenAPIHono + Swagger UI |
+
+- マウント順序: RPC → OpenAPI
+- サービス層は両方で共有
+
+### フロントエンド
 
 ```
-Component → React Query Hook → Hono RPC Client → API
-```
-
----
-
-## ✅ ベストプラクティス
-
-### 推奨
-- ✅ すべてのルートを1つの式でチェーン
-- ✅ `import type { AppType }` で型のみインポート
-- ✅ React Queryで非同期状態管理
-
-### 避けるべき
-- ❌ `app`から直接型をエクスポート（`typeof app`）
-- ❌ 実際のコードをインポート（`import { AppType }`）
-
----
-
-## 📦 必要なパッケージ
-
-```bash
-npm install hono @hono/zod-validator zod @tanstack/react-query
+Component → React Query → Hono RPC Client → API
 ```
 
 ---
 
-**詳細な実装は Issue #06 のタスクを進めながら決定**
-
----
-
-**作成日:** 2025-11-09
+**参照:** [hono-coding-guidelines.md](./hono-coding-guidelines.md)

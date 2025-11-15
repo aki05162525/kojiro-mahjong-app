@@ -14,6 +14,13 @@ const app = new Hono<AuthContext>()
 // すべてのルートに認証ミドルウェアを適用
 app.use('*', authMiddleware)
 
+// GET /api/leagues - リーグ一覧
+app.get('/', async (c) => {
+  const userId = c.get('userId')
+  const result = await leaguesService.getLeaguesByUserId(userId)
+  return c.json(result, 200)
+})
+
 // POST /api/leagues - リーグ作成
 app.post('/', zValidator('json', createLeagueSchema), async (c) => {
   const userId = c.get('userId')
@@ -22,13 +29,6 @@ app.post('/', zValidator('json', createLeagueSchema), async (c) => {
   const league = await leaguesService.createLeague(userId, data)
 
   return c.json(league, 201)
-})
-
-// GET /api/leagues - リーグ一覧
-app.get('/', async (c) => {
-  const userId = c.get('userId')
-  const result = await leaguesService.getLeaguesByUserId(userId)
-  return c.json(result, 200)
 })
 
 // GET /api/leagues/:id - リーグ詳細
