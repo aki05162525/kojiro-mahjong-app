@@ -80,15 +80,8 @@ const createLeagueRoute = createRoute({
 
 app.openapi(createLeagueRoute, async (c) => {
   const userId = c.get('userId')
-  const { playerNames, ...rest } = c.req.valid('json')
-
-  // Convert playerNames array to players array with { name } objects
-  const players = playerNames.map((name) => ({ name }))
-
-  const league = await leaguesService.createLeague(userId, {
-    ...rest,
-    players,
-  })
+  const data = c.req.valid('json')
+  const league = await leaguesService.createLeague(userId, data)
   return c.json(league, 201)
 })
 

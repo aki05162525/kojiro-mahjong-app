@@ -52,6 +52,18 @@ export const LeaguesResponseSchema = z
   .openapi('LeaguesResponse')
 
 /**
+ * Player schema for league creation
+ */
+const PlayerNameSchema = z
+  .object({
+    name: z.string().min(1).max(20).openapi({
+      example: 'Player 1',
+      description: 'Player name (1-20 characters)',
+    }),
+  })
+  .openapi('PlayerName')
+
+/**
  * Create league request
  */
 export const CreateLeagueRequestSchema = z
@@ -64,18 +76,15 @@ export const CreateLeagueRequestSchema = z
       example: 'Every Friday evening',
       description: 'League description (optional)',
     }),
-    playerCount: z.enum(['8', '16']).openapi({
-      example: '8',
-      description: 'Number of players (8 or 16)',
-    }),
-    playerNames: z.array(z.string().min(1).max(20)).openapi({
-      example: ['Player 1', 'Player 2', 'Player 3'],
-      description: 'List of player names',
-    }),
-  })
-  .refine((data) => data.playerNames.length === Number.parseInt(data.playerCount, 10), {
-    message: 'playerNames length must match playerCount (8 or 16)',
-    path: ['playerNames'],
+    players: z
+      .array(PlayerNameSchema)
+      .openapi({
+        example: [{ name: 'Player 1' }, { name: 'Player 2' }],
+        description: 'List of players (must be exactly 8 or 16)',
+      })
+      .refine((players) => players.length === 8 || players.length === 16, {
+        message: 'Players array must contain exactly 8 or 16 players',
+      }),
   })
   .openapi('CreateLeagueRequest')
 
