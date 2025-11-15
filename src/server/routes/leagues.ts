@@ -1,5 +1,5 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { zValidator } from '@hono/zod-validator'
-import { Hono } from 'hono'
 import type { AuthContext } from '../middleware/auth'
 import { authMiddleware } from '../middleware/auth'
 import * as leaguesService from '../services/leagues'
@@ -9,10 +9,72 @@ import {
   updateLeagueStatusSchema,
 } from '../validators/leagues'
 
-const app = new Hono<AuthContext>()
+const app = new OpenAPIHono<AuthContext>()
 
 // すべてのルートに認証ミドルウェアを適用
 app.use('*', authMiddleware)
+
+// 共通スキーマ定義
+const ErrorSchema = z
+  .object({
+    error: z.string().openapi({ example: 'UnauthorizedError' }),
+    message: z.string().openapi({ example: '認証が必要です' }),
+    statusCode: z.number().openapi({ example: 401 }),
+  })
+  .openapi('Error')
+
+const LeagueSchema = z
+  .object({
+    id: z.string().uuid().openapi({ example: '123e4567-e89b-12d3-a456-426614174000' }),
+    name: z.string().openapi({ example: '2025年春リーグ' }),
+    description: z.string().nullable().openapi({ example: '毎週金曜日開催' }),
+    status: z.enum(['active', 'completed', 'deleted']).openapi({ example: 'active' }),
+    createdBy: z.string().uuid(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi('League')
+
+const LeaguesResponseSchema = z
+  .object({
+    leagues: z.array(LeagueSchema),
+  })
+  .openapi('LeaguesResponse')
+
+// OpenAPI対応ルート定義
+const getLeaguesRoute = createRoute({
+  method: 'get',
+  path: '/',
+  tags: ['leagues'],
+  security: [{ Bearer: [] }],
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: LeaguesResponseSchema,
+        },
+      },
+      description: 'ユーザーが参加しているリーグ一覧を取得',
+    },
+    401: {
+      content: {
+        'application/json': {
+          schema: ErrorSchema,
+        },
+      },
+      description: '認証エラー',
+    },
+  },
+})
+
+// ルート実装
+app.openapi(getLeaguesRoute, async (c) => {
+  const userId = c.get('userId')
+  const result = await leaguesService.getLeaguesByUserId(userId)
+  return c.json(result, 200)
+})
+
+// 既存のルートもそのまま維持（段階的移行のため）
 
 // POST /api/leagues - リーグ作成
 app.post('/', zValidator('json', createLeagueSchema), async (c) => {
@@ -22,13 +84,6 @@ app.post('/', zValidator('json', createLeagueSchema), async (c) => {
   const league = await leaguesService.createLeague(userId, data)
 
   return c.json(league, 201)
-})
-
-// GET /api/leagues - リーグ一覧
-app.get('/', async (c) => {
-  const userId = c.get('userId')
-  const result = await leaguesService.getLeaguesByUserId(userId)
-  return c.json(result, 200)
 })
 
 // GET /api/leagues/:id - リーグ詳細
