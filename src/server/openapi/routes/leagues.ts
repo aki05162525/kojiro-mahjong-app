@@ -184,7 +184,10 @@ app.openapi(updateLeagueRoute, async (c) => {
   const userId = c.get('userId')
   const leagueId = c.req.param('id')
   const data = c.req.valid('json')
-  const league = await leaguesService.updateLeague(leagueId, userId, data)
+  await leaguesService.updateLeague(leagueId, userId, data)
+
+  // Fetch the complete league object to return
+  const league = await leaguesService.getLeagueById(leagueId, userId)
   return c.json(league, 200)
 })
 
