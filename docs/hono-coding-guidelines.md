@@ -221,7 +221,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import type { AuthContext } from '../../middleware/auth'
 import { authMiddleware } from '../../middleware/auth'
 import * as leaguesService from '../../services/leagues'
-import { LeagueSchema, UnauthorizedResponse } from '../schemas/leagues'
+import { LeaguesResponseSchema, UnauthorizedResponse } from '../schemas/leagues'
 
 const app = new OpenAPIHono<AuthContext>()
 
@@ -270,11 +270,10 @@ import rpcApp from '@/src/server/routes'
 // Create main app
 const app = new Hono()
 
-// ★ CRITICAL: Mount RPC app FIRST (for type safety)
+// ★ CRITICAL: Mount RPC app FIRST
 app.route('/', rpcApp)
 
 // ★ Mount OpenAPI app SECOND
-// (OpenAPI endpoints like /api/doc and /api/ui will override)
 app.route('/', openapiApp)
 
 export const GET = handle(app)
@@ -283,9 +282,12 @@ export const PATCH = handle(app)
 export const DELETE = handle(app)
 ```
 
-**Important:** The mounting order matters:
-1. Mount RPC app first (ensures Hono RPC type safety works)
-2. Mount OpenAPI app second (OpenAPI-specific routes like `/doc` and `/ui` will take precedence)
+**Important:** The mounting order and route resolution:
+
+1. **Hono resolves routes in registration order**: When a request matches multiple handlers, Hono uses the first one registered
+2. **Mount RPC app first**: Business logic endpoints (like `POST /api/leagues`) are handled by RPC app
+3. **Mount OpenAPI app second**: OpenAPI-only routes (`/api/doc`, `/api/ui`) fall through from RPC app since they're not defined there
+4. **Avoid duplicate routes**: If both apps define the same route, the RPC handler will always be used. Keep API contracts identical (same payload schemas) between both apps
 
 ---
 
@@ -593,7 +595,8 @@ const app = new Hono()
 app.route('/', openapiApp)  // OpenAPI first
 app.route('/', rpcApp)      // RPC second
 
-// Result: /api/doc and /api/ui don't work (RPC overrides them)
+// Result: Business endpoints (POST /api/leagues) are handled by OpenAPI app,
+// but the RPC client expects them from RPC app, breaking type safety
 ```
 
 **Solution:**
@@ -601,8 +604,8 @@ app.route('/', rpcApp)      // RPC second
 ```typescript
 // ✅ app/api/[...route]/route.ts
 const app = new Hono()
-app.route('/', rpcApp)      // RPC first (for type safety)
-app.route('/', openapiApp)  // OpenAPI second (overrides /doc, /ui)
+app.route('/', rpcApp)      // RPC first: handles business logic endpoints
+app.route('/', openapiApp)  // OpenAPI second: handles /doc, /ui (not in RPC)
 ```
 
 ### 6. ❌ Forgetting to Use AuthContext Type
