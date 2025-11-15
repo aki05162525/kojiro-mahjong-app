@@ -1,6 +1,5 @@
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
-import { Hono } from 'hono'
 import { errorHandler } from '../middleware/error-handler'
 import leaguesRoutes from './leagues'
 import playersRoutes from './players'
@@ -18,14 +17,11 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
   description: 'Supabase AuthのJWTトークンを使用',
 })
 
-//  RPC用のルートを定義
-const rpcRoutes = new Hono().route('/leagues', leaguesRoutes).route('/leagues', playersRoutes)
+// RPC用のルートを定義（basePath付き）
+const routes = app.route('/leagues', leaguesRoutes).route('/leagues', playersRoutes)
 
-// ★AppTypeをエクスポート（Hono RPCで使用）
-export type AppType = typeof rpcRoutes
-
-// メインアプリにRPCルートを登録
-app.route('/', rpcRoutes)
+// ★AppTypeをエクスポート（Hono RPCで使用、basePath含む）
+export type AppType = typeof routes
 
 // OpenAPI仕様書エンドポイント
 app.doc('/doc', {
