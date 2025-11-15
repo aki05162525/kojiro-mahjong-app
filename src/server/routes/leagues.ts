@@ -47,10 +47,7 @@ app.patch('/:id', zValidator('json', updateLeagueSchema), async (c) => {
   const leagueId = c.req.param('id')
   const data = c.req.valid('json')
 
-  await leaguesService.updateLeague(leagueId, userId, data)
-
-  // Fetch the complete league object to return
-  const league = await leaguesService.getLeagueById(leagueId, userId)
+  const league = await leaguesService.updateLeague(leagueId, userId, data)
 
   return c.json(league, 200)
 })
@@ -71,10 +68,7 @@ app.patch('/:id/status', zValidator('json', updateLeagueStatusSchema), async (c)
   const leagueId = c.req.param('id')
   const { status } = c.req.valid('json')
 
-  await leaguesService.updateLeagueStatus(leagueId, userId, status)
-
-  // Fetch the complete league object to return
-  const league = await leaguesService.getLeagueById(leagueId, userId)
+  const league = await leaguesService.updateLeagueStatus(leagueId, userId, status)
 
   return c.json(league, 200)
 })

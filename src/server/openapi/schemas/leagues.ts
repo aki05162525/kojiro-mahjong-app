@@ -151,7 +151,7 @@ export const CreateLeagueRequestSchema = z
         description: 'List of players (must be exactly 8 or 16)',
       })
       .refine((players) => players.length === 8 || players.length === 16, {
-        message: 'Players array must contain exactly 8 or 16 players',
+        message: 'プレイヤーリストは8人または16人である必要があります',
       }),
   })
   .openapi('CreateLeagueRequest')

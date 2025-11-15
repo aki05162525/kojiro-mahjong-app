@@ -44,8 +44,16 @@ export async function updateLeague(
   userId: string,
   data: { name?: string; description?: string },
 ) {
-  await findLeagueAndVerifyAdmin(leagueId, userId)
-  return await leaguesRepo.updateLeague(leagueId, data)
+  const league = await findLeagueAndVerifyAdmin(leagueId, userId)
+  const updatedLeague = await leaguesRepo.updateLeague(leagueId, data)
+
+  return {
+    ...league,
+    name: updatedLeague.name,
+    description: updatedLeague.description,
+    status: updatedLeague.status,
+    updatedAt: updatedLeague.updatedAt,
+  }
 }
 
 // リーグ削除
@@ -60,8 +68,14 @@ export async function updateLeagueStatus(
   userId: string,
   status: 'active' | 'completed' | 'deleted',
 ) {
-  await findLeagueAndVerifyAdmin(leagueId, userId)
-  return await leaguesRepo.updateLeagueStatus(leagueId, status)
+  const league = await findLeagueAndVerifyAdmin(leagueId, userId)
+  const updatedLeague = await leaguesRepo.updateLeagueStatus(leagueId, status)
+
+  return {
+    ...league,
+    status: updatedLeague.status,
+    updatedAt: updatedLeague.updatedAt,
+  }
 }
 
 // リーグを取得し、管理者権限を検証するヘルパー（他のサービスからも利用可能）
