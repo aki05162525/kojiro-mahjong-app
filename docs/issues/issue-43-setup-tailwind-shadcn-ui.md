@@ -300,7 +300,7 @@ Next.js 15では`@/*`がデフォルトで設定されているが、以下が�
 ```typescript
 'use client'
 
-import { useForm } from 'react-hook-form'
+import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -328,6 +328,12 @@ export default function CreateLeaguePage() {
       description: '',
       players: Array.from({ length: 8 }, () => ({ name: '' })),
     },
+  })
+
+  // useFieldArrayで配列フィールドを管理（パフォーマンス向上）
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: 'players',
   })
 
   async function onSubmit(values: LeagueFormValues) {
@@ -383,9 +389,9 @@ export default function CreateLeaguePage() {
           {/* プレイヤー名入力フィールド（8人分） */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold">プレイヤー名</h2>
-            {form.watch('players').map((_, index) => (
+            {fields.map((field, index) => (
               <FormField
-                key={index}
+                key={field.id}
                 control={form.control}
                 name={`players.${index}.name`}
                 render={({ field }) => (
@@ -416,7 +422,9 @@ export default function CreateLeaguePage() {
 - **バックエンドのバリデータを再利用**: `createLeagueSchema`を直接インポート
 - **バリデーションルールの統一**: フロントエンドとバックエンドで同じルールを使用
 - **型安全**: `z.infer<typeof createLeagueSchema>`で型を自動推論
-- **配列フィールド**: `players`配列を`form.watch()`で監視し、動的にフィールドを生成
+- **useFieldArrayの使用**: `players`配列を`useFieldArray`で管理し、パフォーマンスを向上
+  - 各フィールドに安定したIDを提供（`field.id`）
+  - `form.watch()`よりも効率的な再レンダリング
 - **エラーメッセージ**: Zodスキーマで定義したメッセージが自動表示される
 
 ---
@@ -675,8 +683,19 @@ export default function ScoresPage() {
 **バックエンド（定義側）:**
 ```typescript
 // src/server/validators/leagues.ts
+import { z } from 'zod'
+
+// プレイヤー名のバリデーション
+const playerNameSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'プレイヤー名は必須です')
+    .max(20, 'プレイヤー名は20文字以内で入力してください'),
+})
+
+// リーグ作成リクエストのバリデーション
 export const createLeagueSchema = z.object({
-  name: z.string().min(1, 'リーグ名は必須です').max(20),
+  name: z.string().min(1, 'リーグ名は必須です').max(20, 'リーグ名は20文字以内で入力してください'),
   description: z.string().optional(),
   players: z.union([
     z.array(playerNameSchema).length(8),
