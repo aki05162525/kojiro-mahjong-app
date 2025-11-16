@@ -31,8 +31,7 @@
 
 ```bash
 # Tailwind CSS関連パッケージのインストール
-bun add -D tailwindcss postcss autoprefixer
-bun add tailwindcss-animate
+bun add -D tailwindcss postcss autoprefixer tailwindcss-animate
 
 # Tailwind設定ファイルの生成
 bunx tailwindcss init -p
