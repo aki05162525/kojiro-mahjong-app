@@ -1,21 +1,49 @@
 'use client'
+
+import type { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { createClient } from '@/src/client/supabase'
 
 export default function Home() {
-  const [message, setMessage] = useState()
+  const [user, setUser] = useState<User | null>(null)
+  const router = useRouter()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch('/api/hello')
-      const { message } = await res.json()
-      setMessage(message)
+    const getUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
     }
-    fetchData()
-  }, [])
+    getUser()
+  }, [supabase])
 
-  if (!message) {
-    return <p>Loading...</p>
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
   }
 
-  return <p>{message}</p>
+  if (!user) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <p>ログインしていません</p>
+        <button type="button" onClick={() => router.push('/login')}>
+          ログイン
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h1>Kojiro Mahjong App</h1>
+      <p>ようこそ、{user.email} さん</p>
+      <button type="button" onClick={handleLogout}>
+        ログアウト
+      </button>
+    </div>
+  )
 }
