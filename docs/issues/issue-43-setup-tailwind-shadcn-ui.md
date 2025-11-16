@@ -367,8 +367,15 @@ export default function CreateLeaguePage() {
               <FormItem>
                 <FormLabel>説明（任意）</FormLabel>
                 <FormControl>
-                  <Textarea placeholder="リーグの説明" {...field} />
+                  <Textarea
+                    placeholder="リーグのルールや特徴など"
+                    {...field}
+                    value={field.value ?? ''}
+                  />
                 </FormControl>
+                <FormDescription>
+                  リーグの説明を自由に記載できます
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
