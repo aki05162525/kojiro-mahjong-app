@@ -11,6 +11,7 @@ export default function Home() {
   const [supabase] = useState(() => createClient())
 
   useEffect(() => {
+    // 初回セッション取得
     const getUser = async () => {
       const {
         data: { session },
@@ -18,6 +19,17 @@ export default function Home() {
       setUser(session?.user ?? null)
     }
     getUser()
+
+    // 認証状態変更の監視
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [supabase])
 
   const handleLogout = async () => {
