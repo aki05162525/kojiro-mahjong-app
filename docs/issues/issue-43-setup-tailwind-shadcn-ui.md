@@ -174,9 +174,7 @@ export default config
     /* ボーダー半径 */
     --radius: 0.5rem;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -485,33 +483,62 @@ export default function ScoresPage() {
 より正確にZennの色を再現したい場合、`app/globals.css`の`:root`セクションを以下のように調整可能：
 
 ```css
-:root {
-  /* より精密なZennカラー */
-  --zenn-blue: 205 100% 62%;       /* #3EA8FF */
-  --zenn-blue-hover: 205 100% 55%; /* ホバー時（少し暗く） */
-  --zenn-blue-light: 205 100% 95%; /* 薄い背景 */
+@layer base {
+  :root {
+    /* より精密なZennカラー */
+    --zenn-blue: 205 100% 62%;       /* #3EA8FF */
+    --zenn-blue-hover: 205 100% 55%; /* ホバー時（少し暗く） */
+    --zenn-blue-light: 205 100% 95%; /* 薄い背景 */
 
-  /* グレースケール（Zennは柔らかいグレーを使用） */
-  --gray-50: 210 20% 98%;
-  --gray-100: 210 20% 95%;
-  --gray-200: 214 20% 90%;
-  --gray-300: 214 15% 80%;
-  --gray-400: 214 10% 60%;
-  --gray-500: 214 10% 45%;
-  --gray-600: 220 15% 30%;
-  --gray-700: 220 20% 20%;
-  --gray-800: 220 20% 15%;
+    /* グレースケール（Zennは柔らかいグレーを使用） */
+    --gray-50: 210 20% 98%;
+    --gray-100: 210 20% 95%;
+    --gray-200: 214 20% 90%;
+    --gray-300: 214 15% 80%;
+    --gray-400: 214 10% 60%;
+    --gray-500: 214 10% 45%;
+    --gray-600: 220 15% 30%;
+    --gray-700: 220 20% 20%;
+    --gray-800: 220 20% 15%;
 
-  /* 上記のshadcn/ui変数にマッピング */
-  --background: 0 0% 100%;
-  --foreground: var(--gray-800);
-  --primary: var(--zenn-blue);
-  --primary-foreground: 0 0% 100%;
-  --muted: var(--gray-100);
-  --muted-foreground: var(--gray-500);
-  --border: var(--gray-200);
-  --input: var(--gray-200);
-  --ring: var(--zenn-blue);
+    /* shadcn/ui変数にマッピング */
+    --background: 0 0% 100%;
+    --foreground: var(--gray-800);
+
+    --primary: var(--zenn-blue);
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: var(--gray-100);
+    --secondary-foreground: var(--gray-800);
+
+    --muted: var(--gray-100);
+    --muted-foreground: var(--gray-500);
+
+    --accent: var(--gray-100);
+    --accent-foreground: var(--gray-800);
+
+    --border: var(--gray-200);
+    --input: var(--gray-200);
+    --ring: var(--zenn-blue);
+
+    --card: 0 0% 100%;
+    --card-foreground: var(--gray-800);
+
+    --popover: 0 0% 100%;
+    --popover-foreground: var(--gray-800);
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
 ```
 
