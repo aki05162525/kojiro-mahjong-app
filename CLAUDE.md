@@ -1,195 +1,239 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、Claude Code（claude.ai/code）が本リポジトリのコードを扱う際のガイドラインを示します。
 
-## Project Overview
+---
 
-Kojiro Mahjong App - A mahjong league management application built with Next.js App Router, Hono, Drizzle ORM, and Supabase.
+## プロジェクト概要
 
-## Development Commands
+**Kojiro Mahjong App**
+Next.js App Router、Hono、Drizzle ORM、Supabase を用いて構築された **麻雀リーグ管理アプリケーション**です。
 
-### Setup and Running
+---
+
+## 開発コマンド
+
+### セットアップ & 開発サーバー起動
+
 ```bash
-bun install                # Install dependencies
-bun run dev                # Start Next.js dev server (localhost:3000)
-bunx supabase start        # Start Supabase local instance
-bunx supabase stop         # Stop Supabase local instance
+bun install                # 依存パッケージのインストール
+bun run dev                # Next.js 開発サーバー起動 (localhost:3000)
+bunx supabase start        # Supabase ローカル環境起動
+bunx supabase stop         # Supabase ローカル環境停止
 ```
 
-### Code Quality
+### コード品質管理
+
 ```bash
-bun run lint               # Check code with Biome (summary report)
-bun run lint:fix           # Auto-fix issues with Biome
-bun run format             # Format code with Biome
+bun run lint               # Biome によるコードチェック（サマリー表示）
+bun run lint:fix           # Biome による自動修正
+bun run format             # Biome によるコード整形
 ```
 
-### Database (Drizzle + Supabase)
+### データベース（Drizzle + Supabase）
+
 ```bash
-bun run db:generate        # Generate migration SQL from schema changes
-bun run db:migrate         # Apply migrations to database
-bun run db:push            # Push schema directly to DB (local dev only)
-bun run db:studio          # Launch Drizzle Studio UI
+bun run db:generate        # スキーマ変更からマイグレーション SQL を生成
+bun run db:migrate         # マイグレーションを DB に適用
+bun run db:push            # スキーマを DB に直接反映（ローカル開発向け）
+bun run db:studio          # Drizzle Studio の UI を起動
 ```
 
-**Important**: Schema files live in `db/schema/`. After modifying schema, run `db:generate` to create migrations, then `db:migrate` to apply them.
+**重要:**
+データベーススキーマは `db/schema/` 配下にあります。
+スキーマ変更後は以下を実施してください：
 
-## Architecture
+1. `bun run db:generate`
+2. `bun run db:migrate`
 
-### Tech Stack
-- **Frontend**: Next.js 15 (App Router), React 19, React Query (TanStack Query)
-- **Backend**: Hono (API framework) with dual API patterns (RPC + OpenAPI)
-- **Database**: PostgreSQL via Supabase + Drizzle ORM
-- **Auth**: Supabase Auth (JWT Bearer tokens)
-- **Validation**: Zod schemas
-- **Linting/Formatting**: Biome
-- **Git Hooks**: Lefthook
+---
 
-### Project Structure
+## アーキテクチャ
+
+### 技術スタック
+
+| 種別           | 使用技術                                       |
+| -------------- | ---------------------------------------------- |
+| フロントエンド | Next.js 15 (App Router), React 19, React Query |
+| バックエンド   | Hono（RPC + OpenAPI の二重 API）               |
+| DB/ORM         | Supabase PostgreSQL + Drizzle ORM              |
+| 認証           | Supabase Auth (JWT/Bearer)                     |
+| バリデーション | Zod                                            |
+| Lint/Format    | Biome                                          |
+| Git Hooks      | Lefthook                                       |
+
+---
+
+## ディレクトリ構成
 
 ```
 app/
-  api/[...route]/route.ts    # Next.js API route - mounts Hono apps
-  layout.tsx, page.tsx       # App Router pages
+  api/[...route]/route.ts     # Next.js APIルート - Honoアプリをマウント
+  layout.tsx, page.tsx        # App Router ページ
 
 src/
   client/
-    api.ts                   # Hono RPC client (hc) setup
-    hooks/                   # React Query hooks (e.g., useLeagues)
+    api.ts                    # Hono RPC クライアント定義 (hc)
+    hooks/                    # React Query hooks (例: useLeagues)
 
   server/
-    routes/                  # Hono RPC routes (type-safe endpoints)
-      index.ts               # Main RPC app, exports AppType
-      leagues.ts, players.ts # Feature-specific routes
+    routes/                   # Hono RPC ルート（型安全 API）
+      index.ts                # RPC メインアプリ (AppType export)
+      leagues.ts, players.ts
 
-    openapi/                 # Hono OpenAPI routes (documented endpoints)
-      index.ts               # OpenAPI app, Swagger UI at /api/ui
-      routes/                # OpenAPI route definitions
-      schemas/               # Zod OpenAPI schemas
+    openapi/                  # Hono OpenAPI ルート
+      index.ts                # Swagger UI を `/api/ui` で提供
+      routes/                 # OpenAPI定義
+      schemas/                # Zod OpenAPIスキーマ
 
-    services/                # Business logic layer
-    repositories/            # Database access layer (Drizzle queries)
-    validators/              # Zod validation schemas
+    services/                 # ビジネスロジック層
+    repositories/             # Drizzle ORM による DB アクセス層
+    validators/               # Zod スキーマ
     middleware/
-      auth.ts                # JWT auth middleware (Supabase)
-      error-handler.ts       # Global error handling
+      auth.ts                 # Supabase JWT 認証
+      error-handler.ts        # エラーハンドラー
 
 db/
-  schema/                    # Drizzle schema definitions
-    index.ts                 # Exports all schemas
-    leagues.ts, players.ts, etc.
-  index.ts                   # Drizzle client initialization
+  schema/                     # Drizzle スキーマ定義
+  index.ts                    # Drizzle クライアント初期化
 
-drizzle/                     # Generated migrations
+drizzle/                      # マイグレーション生成物
 ```
 
-### Dual API Pattern
+---
 
-This project uses **two parallel Hono apps** mounted at the same base path (`/api`):
+## API 構成：RPC + OpenAPI の二重パターン
 
-1. **RPC API** (`src/server/routes/`): Type-safe client-server communication
-   - Uses `hono/client` (hc) for end-to-end type safety
-   - Client: `src/client/api.ts` exports `apiClient` typed with `AppType`
-   - Used by React Query hooks for frontend data fetching
+本アプリの `/api` には 2 つの Hono アプリが共存します：
 
-2. **OpenAPI API** (`src/server/openapi/`): Documented REST API
-   - Uses `@hono/zod-openapi` for OpenAPI 3.1 spec generation
-   - Swagger UI available at `/api/ui`
-   - OpenAPI spec at `/api/doc`
-   - Shares business logic (services/repositories) with RPC API
+| 種類                                | 用途                                               |
+| ----------------------------------- | -------------------------------------------------- |
+| RPC API (`src/server/routes/`)      | フロントエンド用の型安全通信（React Query で利用） |
+| OpenAPI API (`src/server/openapi/`) | Swagger UI による REST API ドキュメント提供        |
 
-Both apps are mounted in `app/api/[...route]/route.ts` and share the same error handler and middleware.
+🔗 Swagger UI: `http://localhost:3000/api/ui`
+📄 OpenAPI 仕様: `http://localhost:3000/api/doc`
 
-### Layered Architecture Pattern
+---
 
-**Routes � Services � Repositories � Database**
+## レイヤード構造
 
-- **Routes**: Handle HTTP concerns (validation, auth middleware, response formatting)
-- **Services**: Business logic, authorization checks (e.g., admin role verification)
-- **Repositories**: Database queries using Drizzle ORM
-- **Database**: PostgreSQL via Supabase, accessed through Drizzle (`db/index.ts`)
-
-Example flow for GET `/api/leagues`:
 ```
-routes/leagues.ts (auth + validation)
-  � services/leagues.ts (business logic)
-    � repositories/leagues.ts (Drizzle query)
-      � db/index.ts (Drizzle client)
+Routes → Services → Repositories → Database
 ```
 
-### Authentication Flow
+| レイヤー     | 役割                            |
+| ------------ | ------------------------------- |
+| Routes       | HTTP 処理、認証、バリデーション |
+| Services     | ビジネスロジック                |
+| Repositories | Drizzle ORM による DB アクセス  |
+| Database     | Supabase PostgreSQL             |
 
-- Supabase Auth provides JWT tokens
-- Frontend includes `Authorization: Bearer <token>` header
-- `authMiddleware` validates token via Supabase client
-- User ID is set in Hono context: `c.get('userId')`
-- Services use userId for authorization checks (e.g., admin role, league participation)
+例: `/api/leagues` 取得フロー
 
-### Database Schema Key Points
+```
+routes/leagues.ts
+  → services/leagues.ts
+    → repositories/leagues.ts
+      → db/index.ts
+```
 
-- Schema defined in `db/schema/*.ts` using Drizzle
-- Relations: `leaguesTable` � `playersTable` � `usersTable`
-- Soft deletes: `status = 'deleted'` (not hard delete)
-- First player in league creation becomes admin (see `repositories/leagues.ts:26-31`)
+---
 
-### Frontend Data Fetching
+## 認証フロー
 
-- React Query hooks in `src/client/hooks/` use Hono RPC client
-- Example: `useLeagues` fetches from `apiClient.api.leagues.$get()`
-- Type safety ensured via `AppType` export from `src/server/routes/index.ts`
+1. フロントエンドは `Authorization: Bearer <JWT>` を送信
+2. `authMiddleware` が Supabase を用いて検証
+3. 認証ユーザー ID を `c.get('userId')` にセット
+4. Services で権限チェックに利用
 
-## Environment Variables
+---
 
-Required in `.env` or `.env.local`:
-- `DATABASE_URL` - PostgreSQL connection string (Supabase local: run `bunx supabase status`)
-- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key
+## フロントエンドのデータ取得
 
-**Never commit `.env` or `.env.local`** - they're gitignored.
+- React Query + Hono RPC クライアント
+- クライアントは `src/client/api.ts`
+- 型安全な API: `apiClient.api.leagues.$get()`
 
-## Code Quality Standards
+---
 
-- **Biome** handles both linting and formatting
-- **Lefthook** runs `lint:fix` on staged files pre-commit
-- Use `bun run lint:fix` before committing to auto-fix safe issues
-- TypeScript strict mode enabled
+## 環境変数
 
-## Common Patterns
+`.env` または `.env.local` に設定：
 
-### Adding a New Feature
+| 変数名                        | 説明                      |
+| ----------------------------- | ------------------------- |
+| DATABASE_URL                  | Postgres 接続 URL         |
+| NEXT_PUBLIC_SUPABASE_URL      | Supabase プロジェクト URL |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY | Supabase 匿名キー         |
 
-1. **Define schema** in `db/schema/*.ts`
-2. **Generate migration**: `bun run db:generate`
-3. **Apply migration**: `bun run db:migrate`
-4. **Create repository** in `src/server/repositories/` (Drizzle queries)
-5. **Create service** in `src/server/services/` (business logic)
-6. **Create validator** in `src/server/validators/` (Zod schemas)
-7. **Add RPC route** in `src/server/routes/*.ts`
-8. **(Optional) Add OpenAPI route** in `src/server/openapi/routes/*.ts`
-9. **Create React Query hook** in `src/client/hooks/`
-10. **Use in components** via the hook
+※ `.env` は git にコミットしないでください。
 
-### Error Handling
+---
 
-- Services throw typed errors: `NotFoundError`, `ForbiddenError`, `BadRequestError`
-- Defined in `src/server/middleware/error-handler.ts`
-- Global error handler converts to appropriate HTTP responses
-- Example: `throw new ForbiddenError('Sn�\��LY�)PLB�~[�')`
+## 開発フロー：新機能追加
 
-### Database Transactions
+1. `db/schema/` にスキーマ追加
+2. `bun run db:generate`
+3. `bun run db:migrate`
+4. Repository 作成
+5. Service 作成
+6. Validator 作成
+7. RPC ルート追加
+8. (任意) OpenAPI ルート追加
+9. React Query hook 作成
+10. UI コンポーネントへ反映
 
-Use `db.transaction()` for multi-step operations:
-```typescript
-return await db.transaction(async (tx) => {
+---
+
+## エラーハンドリング
+
+- `ForbiddenError` `NotFoundError` 等をサービス内で throw
+- `error-handler.ts` が HTTP レスポンスに変換
+- 統一レスポンス形式：
+
+```json
+{
+  "error": "ForbiddenError",
+  "message": "You are not allowed to access this resource",
+  "statusCode": 403
+}
+```
+
+---
+
+## マイグレーション例（トランザクション）
+
+```ts
+return db.transaction(async (tx) => {
   const [league] = await tx.insert(leaguesTable).values(...).returning()
   const players = await tx.insert(playersTable).values(...).returning()
   return { ...league, players }
 })
 ```
 
-See `repositories/leagues.ts:14-40` for reference.
+---
 
-## API Documentation
+## API ドキュメント
 
-- Swagger UI: `http://localhost:3000/api/ui` (when dev server is running)
-- OpenAPI spec: `http://localhost:3000/api/doc`
-- Only OpenAPI routes appear in Swagger (RPC routes are client-only)
+| 内容         | URL                             |
+| ------------ | ------------------------------- |
+| Swagger UI   | `http://localhost:3000/api/ui`  |
+| OpenAPI JSON | `http://localhost:3000/api/doc` |
+
+---
+
+## 備考
+
+- Supabase + Drizzle によるスキーマ駆動開発
+- Biome によるコード品質管理
+- Lefthook による pre-commit Lint 自動実行
+
+---
+
+💡 **Claude に期待すること例：**
+
+- 新しい Route/Service/Repo のテンプレ生成
+- Zod バリデーションの生成
+- 型安全な React Query hook の生成
+- OpenAPI ルート自動作成サポート
