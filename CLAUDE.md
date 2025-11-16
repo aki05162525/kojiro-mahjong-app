@@ -176,6 +176,23 @@ routes/leagues.ts
 
 ※ `.env` は git にコミットしないでください。
 
+### 環境変数の扱い
+
+- **Non-null assertion (`!`) の使用を避ける**
+  - 環境変数を参照する際は、`process.env.VARIABLE_NAME!` のような non-null assertion を使わない
+  - 必ず明示的に存在チェックを行い、未定義の場合はエラーをスローする
+  - 例:
+    ```typescript
+    // ❌ Bad
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+
+    // ✅ Good
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!url) {
+      throw new Error('NEXT_PUBLIC_SUPABASE_URL must be defined in environment variables.')
+    }
+    ```
+
 ---
 
 ## 開発フロー：新機能追加
