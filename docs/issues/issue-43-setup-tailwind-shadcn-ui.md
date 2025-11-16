@@ -294,6 +294,8 @@ Next.js 15では`@/*`がデフォルトで設定されているが、以下が�
 
 ### React Hook Form + shadcn/ui フォームの実装例
 
+**重要:** このプロジェクトでは、バックエンドとフロントエンドでZodスキーマを共有します。`src/server/validators/`で定義されたスキーマをフロントエンドでも再利用することで、バリデーションルールの一貫性を保ちます。
+
 #### ファイル: `app/leagues/create/page.tsx`
 
 ```typescript
@@ -301,7 +303,7 @@ Next.js 15では`@/*`がデフォルトで設定されているが、以下が�
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import type { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -313,37 +315,26 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+// ★ バックエンドのバリデータを再利用
+import { createLeagueSchema } from '@/src/server/validators/leagues'
 
-const leagueFormSchema = z.object({
-  name: z.string().min(1, 'リーグ名を入力してください').max(20, 'リーグ名は20文字以内で入力してください'),
-  description: z.string().max(200, '説明は200文字以内で入力してください').nullable(),
-  playerCount: z.enum(['8', '16'], {
-    required_error: 'プレイヤー数を選択してください',
-  }),
-})
-
-type LeagueFormValues = z.infer<typeof leagueFormSchema>
+type LeagueFormValues = z.infer<typeof createLeagueSchema>
 
 export default function CreateLeaguePage() {
   const form = useForm<LeagueFormValues>({
-    resolver: zodResolver(leagueFormSchema),
+    resolver: zodResolver(createLeagueSchema),
     defaultValues: {
       name: '',
       description: '',
-      playerCount: '8',
+      players: Array.from({ length: 8 }, () => ({ name: '' })),
     },
   })
 
   async function onSubmit(values: LeagueFormValues) {
     console.log(values)
-    // TODO: API呼び出し
+    // TODO: Hono RPC経由でAPI呼び出し
+    // const res = await apiClient.api.leagues.$post({ json: values })
   }
 
   return (
@@ -371,25 +362,38 @@ export default function CreateLeaguePage() {
 
           <FormField
             control={form.control}
-            name="playerCount"
+            name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>プレイヤー数</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="プレイヤー数を選択" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="8">8人</SelectItem>
-                    <SelectItem value="16">16人</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>説明（任意）</FormLabel>
+                <FormControl>
+                  <Textarea placeholder="リーグの説明" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          {/* プレイヤー名入力フィールド（8人分） */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">プレイヤー名</h2>
+            {form.watch('players').map((_, index) => (
+              <FormField
+                key={index}
+                control={form.control}
+                name={`players.${index}.name`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>プレイヤー {index + 1}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="プレイヤー名" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
 
           <Button type="submit" className="w-full">
             リーグを作成
@@ -403,11 +407,11 @@ export default function CreateLeaguePage() {
 
 **ポイント:**
 
-- Zodスキーマでバリデーションルールを定義
-- `zodResolver`でReact Hook Formと統合
-- shadcn/uiの`Form`コンポーネントでラップ
-- エラーメッセージは自動表示（`FormMessage`）
-- 型安全（`LeagueFormValues`で型推論）
+- **バックエンドのバリデータを再利用**: `createLeagueSchema`を直接インポート
+- **バリデーションルールの統一**: フロントエンドとバックエンドで同じルールを使用
+- **型安全**: `z.infer<typeof createLeagueSchema>`で型を自動推論
+- **配列フィールド**: `players`配列を`form.watch()`で監視し、動的にフィールドを生成
+- **エラーメッセージ**: Zodスキーマで定義したメッセージが自動表示される
 
 ---
 
@@ -573,6 +577,18 @@ export default function ScoresPage() {
 - Tailwindのクラス名は自動フォーマット対象外（問題なし）
 - `bun run lint:fix`で既存のルールに従う
 
+### Zodバリデータとの統合
+
+- **既存のバリデータを再利用**: `src/server/validators/`で定義されたスキーマをフロントエンドでもインポート
+- **利用可能なスキーマ**:
+  - `createLeagueSchema` - リーグ作成（name, description, players配列）
+  - `updateLeagueSchema` - リーグ更新（name, description）
+  - `updateLeagueStatusSchema` - ステータス変更（status）
+  - `updatePlayerNameSchema` - プレイヤー名更新（name）
+  - `updatePlayerRoleSchema` - 権限変更（role）
+- **パスエイリアス**: `@/src/server/validators/leagues`でインポート可能
+- **型推論**: `z.infer<typeof schema>`でTypeScript型を自動生成
+
 ---
 
 ## 検証方法
@@ -617,6 +633,73 @@ export default function ScoresPage() {
 4. **React Hook Formのエラー**
    - `@hookform/resolvers`がインストールされているか確認
    - `zodResolver`のインポート先が正しいか確認
+
+5. **Zodスキーマのインポートエラー**
+   - `@/src/server/validators/*`からインポートできない場合、`tsconfig.json`のパスエイリアス設定を確認
+   - フロントエンドで独自にスキーマを定義せず、必ず`src/server/validators/`のスキーマを再利用する
+
+---
+
+## 重要な設計原則: Zodスキーマの共有
+
+### バックエンドとフロントエンドでスキーマを共有する理由
+
+このプロジェクトでは、**Single Source of Truth**の原則に従い、Zodスキーマをバックエンドとフロントエンドで共有します。
+
+**メリット:**
+
+1. **バリデーションルールの一貫性**
+   - バックエンドとフロントエンドで同じルールが適用される
+   - ルール変更時も1箇所の修正で済む
+
+2. **型安全性の向上**
+   - `z.infer<typeof schema>`で型を自動生成
+   - フロントエンドとバックエンドで型が一致することを保証
+
+3. **保守性の向上**
+   - スキーマの重複を避ける
+   - バリデーションルールの不整合によるバグを防ぐ
+
+4. **開発効率の向上**
+   - スキーマを再定義する必要がない
+   - エラーメッセージもバックエンドで定義したものを再利用
+
+### スキーマの配置と使用方法
+
+**バックエンド（定義側）:**
+```typescript
+// src/server/validators/leagues.ts
+export const createLeagueSchema = z.object({
+  name: z.string().min(1, 'リーグ名は必須です').max(20),
+  description: z.string().optional(),
+  players: z.union([
+    z.array(playerNameSchema).length(8),
+    z.array(playerNameSchema).length(16)
+  ]),
+})
+```
+
+**フロントエンド（使用側）:**
+```typescript
+// app/leagues/create/page.tsx
+import { createLeagueSchema } from '@/src/server/validators/leagues'
+import type { z } from 'zod'
+
+type LeagueFormValues = z.infer<typeof createLeagueSchema>
+
+const form = useForm<LeagueFormValues>({
+  resolver: zodResolver(createLeagueSchema),
+})
+```
+
+**禁止事項:**
+```typescript
+// ❌ フロントエンドで独自にスキーマを定義するのはNG
+const leagueFormSchema = z.object({
+  name: z.string().min(1).max(20),
+  // ...
+})
+```
 
 ---
 
