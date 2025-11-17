@@ -3,6 +3,7 @@
 import type { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
 import { createClient } from '@/src/client/supabase'
 
 export default function Home() {
@@ -45,6 +46,9 @@ export default function Home() {
         <button type="button" onClick={() => router.push('/login')}>
           ログイン
         </button>
+        <Button variant="outline" size="icon" aria-label="Submit">
+          てすとです
+        </Button>
       </div>
     )
   }
