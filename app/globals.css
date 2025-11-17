@@ -4,58 +4,139 @@
 
 @layer base {
   :root {
-    /* Zennライクなカラースキーム（ライトモードのみ） */
-    --zenn-blue: 205 100% 62%; /* #3EA8FF */
-    --zenn-blue-hover: 205 100% 55%; /* ホバー時（少し暗く） */
-    --zenn-blue-light: 205 100% 95%; /* 薄い背景 */
+    /* ========================================
+       Atlassian Design System 命名規則
+       カラーパレット: Zennライク（ライトモードのみ）
+       ======================================== */
 
-    /* グレースケール（Zennは柔らかいグレーを使用） */
-    --gray-50: 210 20% 98%;
-    --gray-100: 210 20% 95%;
-    --gray-200: 214 20% 90%;
-    --gray-300: 214 15% 80%;
-    --gray-400: 214 10% 60%;
-    --gray-500: 214 10% 45%;
-    --gray-600: 220 15% 30%;
-    --gray-700: 220 20% 20%;
-    --gray-800: 220 20% 15%;
+    /* --- プライマリカラー（Zennブルー） --- */
+    --ds-brand-primary: 205 100% 62%; /* #3EA8FF */
+    --ds-brand-primary-hover: 205 100% 55%; /* ホバー時 */
+    --ds-brand-primary-light: 205 100% 95%; /* 薄い背景 */
 
-    /* 背景とテキスト */
-    --background: 0 0% 100%;
-    --foreground: var(--gray-800);
+    /* --- グレースケール（Neutral） --- */
+    --ds-neutral-50: 210 20% 98%;
+    --ds-neutral-100: 210 20% 95%;
+    --ds-neutral-200: 214 20% 90%;
+    --ds-neutral-300: 214 15% 80%;
+    --ds-neutral-400: 214 10% 60%;
+    --ds-neutral-500: 214 10% 45%;
+    --ds-neutral-600: 220 15% 30%;
+    --ds-neutral-700: 220 20% 20%;
+    --ds-neutral-800: 220 20% 15%;
 
-    --primary: var(--zenn-blue);
-    --primary-foreground: 0 0% 100%;
+    /* --- セマンティックカラー --- */
+    /* Success (Green) */
+    --ds-status-success: 152 69% 31%; /* #2BAA76 (Zenn風グリーン) */
+    --ds-status-success-light: 152 69% 95%;
 
-    --secondary: var(--gray-100);
-    --secondary-foreground: var(--gray-800);
+    /* Warning (Yellow) */
+    --ds-status-warning: 45 100% 51%; /* #FFC700 (Zenn風イエロー) */
+    --ds-status-warning-light: 45 100% 95%;
 
-    --muted: var(--gray-100);
-    --muted-foreground: var(--gray-500);
+    /* Error (Red) */
+    --ds-status-error: 0 84% 60%; /* #F5222D相当 */
+    --ds-status-error-light: 0 84% 95%;
 
-    --accent: var(--gray-100);
-    --accent-foreground: var(--gray-800);
+    /* Information (Blue) */
+    --ds-status-info: 205 100% 62%; /* プライマリと同色 */
+    --ds-status-info-light: 205 100% 95%;
 
-    --border: var(--gray-200);
-    --input: var(--gray-200);
-    --ring: var(--zenn-blue);
+    /* --- サーフェス（背景・カード） --- */
+    --ds-surface-base: 0 0% 100%; /* 白背景 */
+    --ds-surface-raised: 0 0% 100%; /* カード背景 */
+    --ds-surface-overlay: 0 0% 100%; /* ポップオーバー */
+    --ds-surface-subtle: var(--ds-neutral-100); /* 微妙な背景 */
 
-    --card: 0 0% 100%;
-    --card-foreground: var(--gray-800);
+    /* --- テキスト --- */
+    --ds-text-default: var(--ds-neutral-800); /* 基本テキスト */
+    --ds-text-subtle: var(--ds-neutral-500); /* 控えめテキスト */
+    --ds-text-selected: var(--ds-brand-primary); /* 選択状態 */
+    --ds-text-disabled: var(--ds-neutral-300); /* 無効状態 */
+    --ds-text-inverse: 0 0% 100%; /* 白テキスト */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: var(--gray-800);
+    /* --- ボーダー --- */
+    --ds-border-default: var(--ds-neutral-200);
+    --ds-border-focused: var(--ds-brand-primary);
+    --ds-border-width: 0.0625rem; /* 1px */
+    --ds-border-width-focused: 0.125rem; /* 2px */
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* --- インタラクション --- */
+    --ds-interaction-hover: var(--ds-neutral-100); /* ホバー背景 */
+    --ds-interaction-pressed: var(--ds-neutral-200); /* 押下状態 */
 
-    --radius: 0.5rem;
+    /* --- スペーシング（8進法） --- */
+    --ds-space-0: 0;
+    --ds-space-25: 0.125rem; /* 2px */
+    --ds-space-50: 0.25rem; /* 4px */
+    --ds-space-75: 0.375rem; /* 6px */
+    --ds-space-100: 0.5rem; /* 8px */
+    --ds-space-150: 0.75rem; /* 12px */
+    --ds-space-200: 1rem; /* 16px */
+    --ds-space-250: 1.25rem; /* 20px */
+    --ds-space-300: 1.5rem; /* 24px */
+    --ds-space-400: 2rem; /* 32px */
+    --ds-space-500: 2.5rem; /* 40px */
+    --ds-space-600: 3rem; /* 48px */
+
+    /* --- ボーダー半径 --- */
+    --ds-radius-default: 0.5rem; /* 8px */
+    --ds-radius-lg: calc(var(--ds-radius-default) + 0.125rem);
+    --ds-radius-md: calc(var(--ds-radius-default) - 0.125rem);
+    --ds-radius-sm: calc(var(--ds-radius-default) - 0.25rem);
+
+    /* --- シャドウ --- */
+    --ds-shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+    --ds-shadow-overlay: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+
+    /* ========================================
+       shadcn/ui 互換マッピング
+       ======================================== */
+
+    --background: var(--ds-surface-base);
+    --foreground: var(--ds-text-default);
+
+    --primary: var(--ds-brand-primary);
+    --primary-foreground: var(--ds-text-inverse);
+
+    --secondary: var(--ds-surface-subtle);
+    --secondary-foreground: var(--ds-text-default);
+
+    --muted: var(--ds-surface-subtle);
+    --muted-foreground: var(--ds-text-subtle);
+
+    --accent: var(--ds-surface-subtle);
+    --accent-foreground: var(--ds-text-default);
+
+    --border: var(--ds-border-default);
+    --input: var(--ds-border-default);
+    --ring: var(--ds-border-focused);
+
+    --card: var(--ds-surface-raised);
+    --card-foreground: var(--ds-text-default);
+
+    --popover: var(--ds-surface-overlay);
+    --popover-foreground: var(--ds-text-default);
+
+    --destructive: var(--ds-status-error);
+    --destructive-foreground: var(--ds-text-inverse);
+
+    --radius: var(--ds-radius-default);
+
+    /* Chart colors (将来的な拡張用) */
+    --chart-1: var(--ds-brand-primary);
+    --chart-2: var(--ds-status-success);
+    --chart-3: var(--ds-status-warning);
+    --chart-4: var(--ds-status-error);
+    --chart-5: var(--ds-status-info);
   }
 
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 }
