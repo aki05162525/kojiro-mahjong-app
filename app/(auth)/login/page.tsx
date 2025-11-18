@@ -25,7 +25,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-export default function App() {
+export default function LoginPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -58,7 +58,8 @@ export default function App() {
       // ログイン成功 → ホームページへリダイレクト
       router.push('/')
       router.refresh()
-    } catch {
+    } catch (err) {
+      console.error('ログイン処理中に予期せぬエラーが発生しました:', err)
       setError('ログイン中にエラーが発生しました')
     } finally {
       setLoading(false)
