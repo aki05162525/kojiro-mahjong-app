@@ -1,29 +1,20 @@
 'use client'
 
-import { Label } from '@radix-ui/react-label'
 import { KeyRound, Mail } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-// バリデーションスキーマ
-const loginSchema = z.object({
-  email: z.email().min(1, 'メールアドレスは必須です'),
-  password: z.string().min(6, 'パスワードは6文字以上で入力してください'),
-})
-// 型を取りだす
-type LoginFormValues = z.infer<typeof loginSchema>
-
-export default function LoginForm() {
+export default function App() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
-  } = useForm<Inputs>()
-  const onSubmit: SubmitHandler<Inputs> = (data) => console.log(data)
+  } = useForm()
+  const onSubmit = (data: any) => console.log(data)
+  console.log(errors)
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -54,7 +45,12 @@ export default function LoginForm() {
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input type="email" placeholder="Email" className="pl-10 h-11" />
+                  <Input
+                    type="text"
+                    placeholder="Email"
+                    {...register('Email', { required: true, pattern: /^\S+@\S+$/i })}
+                    className="pl-10 h-11"
+                  />
                 </div>
               </div>
 
@@ -65,13 +61,18 @@ export default function LoginForm() {
                 </Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input id="password" type="password" className="pl-10 h-11" />
+                  <Input
+                    type="password"
+                    placeholder="password"
+                    {...register('password', { required: true })}
+                    className="pl-10 h-11"
+                  />
                 </div>
               </div>
 
               {/* 送信ボタン */}
               <Button type="submit" className="w-full h-11 font-medium">
-                hoge
+                ログイン
               </Button>
             </form>
           </CardContent>
