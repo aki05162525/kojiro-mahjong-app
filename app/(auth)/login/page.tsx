@@ -1,37 +1,64 @@
 'use client'
 
+import { zodResolver } from '@hookform/resolvers/zod'
+import { KeyRound, Mail } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import type { SubmitHandler } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { createClient } from '@/src/client/supabase'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+// Zodバリデーションスキーマ
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'メールアドレスは必須です')
+    .email('有効なメールアドレスを入力してください'),
+  password: z.string().min(6, 'パスワードは6文字以上で入力してください'),
+})
+
+type LoginFormValues = z.infer<typeof loginSchema>
+
+export default function App() {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   const [supabase] = useState(() => createClient())
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  })
+
+  const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
     setError(null)
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Supabase Authでログイン
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       })
 
-      if (error) {
-        setError(error.message)
+      if (authError) {
+        setError(authError.message)
         return
       }
 
-      // ログイン成功 → ホームページにリダイレクト
+      // ログイン成功 → ホームページへリダイレクト
       router.push('/')
       router.refresh()
-    } catch (err) {
+    } catch {
       setError('ログイン中にエラーが発生しました')
     } finally {
       setLoading(false)
@@ -39,36 +66,91 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <h1>ログイン</h1>
-      <form onSubmit={handleLogin}>
-        <div style={{ marginBottom: '16px' }}>
-          <label htmlFor="email">メールアドレス</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-          />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* ヘッダー */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary mb-3">
+            <KeyRound className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <h1 className="text-3xl font-bold text-foreground">小次郎麻雀アプリ</h1>
+          <p className="text-muted-foreground">成績管理</p>
         </div>
-        <div style={{ marginBottom: '16px' }}>
-          <label htmlFor="password">パスワード</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-          />
-        </div>
-        {error && <div style={{ color: 'red', marginBottom: '16px' }}>{error}</div>}
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px' }}>
-          {loading ? 'ログイン中...' : 'ログイン'}
-        </button>
-      </form>
+
+        {/* ログインカード */}
+        <Card className="border-border shadow-lg">
+          <CardHeader className="space-y-2">
+            <CardTitle className="text-2xl text-foreground">ログイン</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              メールアドレスとパスワードを入力してください
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* メールアドレス */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                  メールアドレス
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@example.com"
+                    {...register('email')}
+                    className="pl-10 h-11"
+                    disabled={loading}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+                )}
+              </div>
+
+              {/* パスワード */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                  パスワード
+                </Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...register('password')}
+                    className="pl-10 h-11"
+                    disabled={loading}
+                  />
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
+                )}
+              </div>
+
+              {/* エラーメッセージ */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* 送信ボタン */}
+              <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                {loading ? 'ログイン中...' : 'ログイン'}
+              </Button>
+            </form>
+
+            {/* フッター */}
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="text-sm text-center text-muted-foreground">
+                アカウントをお持ちでない方は管理者にお問い合わせください
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
