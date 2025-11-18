@@ -1,6 +1,7 @@
 'use client'
 
 import { KeyRound, Mail } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,13 +9,19 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function App() {
+  const router = useRouter()
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm()
-  const onSubmit = (data: any) => console.log(data)
-  console.log(errors)
+  const onSubmit = (data: any) => {
+    console.log(data)
+    console.log(errors)
+
+    router.push('/')
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
