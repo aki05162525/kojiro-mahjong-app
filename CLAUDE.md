@@ -255,6 +255,31 @@ return db.transaction(async (tx) => {
 
 ---
 
+## UI/UX 開発の方針
+
+### shadcn/ui コンポーネントの使用
+
+- **必要なコンポーネントは都度追加する**
+  - 事前に全コンポーネントをインストールしない
+  - 使用するタイミングで `bunx shadcn@latest add <component>` で追加
+  - 未使用コードを避け、プロジェクトサイズを最小限に保つ
+
+### デザイン原則
+
+- **余計な情報は載せない**
+  - 実装する機能が決まっていない画面では、不確定な要素（ダッシュボードカード、お知らせ、統計情報など）を表示しない
+  - 「将来的に追加予定」のメッセージや機能も含めない
+  - シンプルで必要最小限のUIを維持する
+  - ユーザーから明確な要件が提示されるまで、推測でUIを作り込まない
+
+### 既存のshadcn/ui変数を優先使用
+
+- Tailwind CSS のカラー指定では、カスタムCSS変数（`--ds-*`など）を直接使わない
+- 既存の shadcn/ui 変数（`bg-primary`, `text-foreground`, `text-muted-foreground`など）を使用する
+- `globals.css` で内部的にマッピング済みなので、shadcn/ui の変数経由で Atlassian Design System の色が適用される
+
+---
+
 💡 **Claude に期待すること例：**
 
 - 新しい Route/Service/Repo のテンプレ生成
