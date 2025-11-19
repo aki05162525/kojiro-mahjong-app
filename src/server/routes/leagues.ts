@@ -1,13 +1,13 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import type { AuthContext } from '../middleware/auth'
-import { authMiddleware } from '../middleware/auth'
-import * as leaguesService from '../services/leagues'
 import {
   createLeagueSchema,
   updateLeagueSchema,
   updateLeagueStatusSchema,
-} from '../validators/leagues'
+} from '@/src/schemas/leagues'
+import type { AuthContext } from '../middleware/auth'
+import { authMiddleware } from '../middleware/auth'
+import * as leaguesService from '../services/leagues'
 
 const app = new Hono<AuthContext>()
   .use('*', authMiddleware)
