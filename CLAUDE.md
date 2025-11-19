@@ -37,6 +37,20 @@ bun run lint:fix           # Biome による自動修正
 bun run format             # Biome によるコード整形
 ```
 
+**Lint/Format のワークフロー:**
+- **保存時自動修正 + コミット時チェック**の構成
+  - VSCode: `editor.formatOnSave: true` で保存時に自動修正
+  - Lefthook: `pre-commit` ではチェックのみ（修正しない）
+  - 理由: 二重実行を避け、開発体験を最適化
+  - lefthook.yml の設定:
+    ```yaml
+    pre-commit:
+      commands:
+        biome:
+          run: bunx biome check --no-errors-on-unmatched {staged_files}
+          # ❌ lint:fix は使わない（保存時に既に修正済み）
+    ```
+
 ### データベース（Drizzle + Supabase）
 
 ```bash
@@ -178,18 +192,39 @@ routes/leagues.ts
 
 ### 環境変数の扱い
 
-- **Non-null assertion (`!`) の使用を避ける**
-  - 環境変数を参照する際は、`process.env.VARIABLE_NAME!` のような non-null assertion を使わない
-  - 必ず明示的に存在チェックを行い、未定義の場合はエラーをスローする
+- **環境変数は `src/config/env.ts` で一元管理する**
+  - 各ファイルで `process.env.VARIABLE_NAME` を直接参照しない
+  - 必ず `src/config/env.ts` の関数経由でアクセスする
+  - Non-null assertion (`!`) の使用を避ける
   - 例:
     ```typescript
-    // ❌ Bad
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    // ❌ Bad - 各ファイルで直接参照
+    const url = process.env.DATABASE_URL!
 
-    // ✅ Good
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    // ❌ Bad - 各ファイルで検証ロジックを書く
+    const url = process.env.DATABASE_URL
     if (!url) {
-      throw new Error('NEXT_PUBLIC_SUPABASE_URL must be defined in environment variables.')
+      throw new Error('DATABASE_URL must be defined in environment variables.')
+    }
+
+    // ✅ Good - config/env.ts の関数を使用
+    import { getDatabaseUrl } from '@/src/config/env'
+    const url = getDatabaseUrl()
+    ```
+
+### config/env.ts の実装パターン
+
+- **検証付きゲッター関数を作成する**
+  - 環境変数ごとに専用の関数を作成
+  - 未定義の場合は明確なエラーメッセージを投げる
+  - 例:
+    ```typescript
+    export function getDatabaseUrl(): string {
+      const databaseUrl = process.env.DATABASE_URL
+      if (!databaseUrl) {
+        throw new Error('DATABASE_URL must be defined in environment variables.')
+      }
+      return databaseUrl
     }
     ```
 
@@ -244,14 +279,6 @@ return db.transaction(async (tx) => {
 | ------------ | ------------------------------- |
 | Swagger UI   | `http://localhost:3000/api/ui`  |
 | OpenAPI JSON | `http://localhost:3000/api/doc` |
-
----
-
-## 備考
-
-- Supabase + Drizzle によるスキーマ駆動開発
-- Biome によるコード品質管理
-- Lefthook による pre-commit Lint 自動実行
 
 ---
 

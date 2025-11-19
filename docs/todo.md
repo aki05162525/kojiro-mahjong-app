@@ -37,16 +37,33 @@
   - [x] Validators: Zod スキーマ (`src/server/validators/leagues.ts`)
   - [x] OpenAPI Schemas: 完全なスキーマ定義 (`src/server/openapi/schemas/leagues.ts`)
 
+- [x] **プレイヤー管理機能（100%完了）**
+  - [x] Routes (RPC): プレイヤー名更新、権限変更 (`src/server/routes/players.ts`)
+  - [x] Services: プレイヤー操作ロジック (`src/server/services/players.ts`)
+  - [x] Repositories: DB アクセス層 (`src/server/repositories/players.ts`)
+  - [x] Validators: playerParamSchema 等
+
+### フロントエンド統合
+- [x] **React Query + Hono RPC 統合（100%完了）**
+  - [x] RPC クライアント初期化（`src/client/api.ts`）
+  - [x] 認証ヘッダー自動付与機能
+  - [x] React Query Hooks 実装（`src/client/hooks/useLeagues.ts`）
+    - [x] リーグ管理用 hooks（6つ）
+    - [x] プレイヤー管理用 hooks（2つ）
+  - [x] React Query Provider セットアップ（`app/providers.tsx`）
+  - [x] React Query DevTools 統合
+
+### 開発環境改善
+- [x] **Lint/Format 最適化**
+  - [x] Lefthook 設定最適化（pre-commit でチェックのみ）
+  - [x] VSCode 保存時自動修正設定
+  - [x] Non-null assertion 削除（db/index.ts, drizzle.config.ts）
+
 ## 現在進行中
 
-### プレイヤー管理機能（60%完了）
-- [x] Routes (RPC): プレイヤー名更新、権限変更 (`src/server/routes/players.ts`)
-- [x] Services: プレイヤー操作ロジック (`src/server/services/players.ts`)
-- [x] Repositories: DB アクセス層 (`src/server/repositories/players.ts`)
-- [x] Validators: playerParamSchema 等
-- [ ] Routes (OpenAPI): Swagger UI 対応 ← **今ココ**
-- [ ] OpenAPI Schemas: スキーマ定義
-- [ ] プレイヤー削除エンドポイント追加
+なし
+
+## TODO (優先度順)
 
 ## TODO
 
@@ -89,20 +106,37 @@
   - [ ] Routes (RPC/OpenAPI): リクエスト作成/承認/却下
   - [ ] Services/Repositories/Validators
 
-### フロントエンド UI 実装
-- [ ] リーグ一覧/詳細ページ
-- [ ] プレイヤー管理画面
-- [ ] 節作成/卓割り当て画面
-- [ ] スコア入力フォーム
-- [ ] ランキング表示画面
-- [ ] 管理者ダッシュボード
+### フロントエンド UI 実装（Next.js + shadcn/ui）
+- [ ] **リーグ管理画面**
+  - [ ] リーグ一覧ページ（`/leagues`）
+  - [ ] リーグ詳細ページ（`/leagues/[id]`）
+  - [ ] リーグ作成フォーム
+  - [ ] リーグ設定変更フォーム
+- [ ] **プレイヤー管理画面**
+  - [ ] プレイヤー一覧表示
+  - [ ] プレイヤー名編集
+  - [ ] 権限変更（admin/member）
+- [ ] **節管理画面**
+  - [ ] 節作成フォーム
+  - [ ] 卓割り当て画面
+  - [ ] 座順表示
+- [ ] **スコア入力画面**
+  - [ ] スコア入力フォーム
+  - [ ] リアルタイム計算表示
+  - [ ] 合計点バリデーション
+- [ ] **ランキング表示画面**
+  - [ ] リーグランキング一覧
+  - [ ] 個人成績詳細
+- [ ] **管理者ダッシュボード**
+  - [ ] リーグ統計情報
+  - [ ] 最近の節一覧
 
 ### React Query フック作成
-- [ ] useLeagues, useLeagueDetail
-- [ ] usePlayers
-- [ ] useSessions
-- [ ] useScores
-- [ ] useRanking
+- [x] useLeagues, useLeague, useCreateLeague, useUpdateLeague, useDeleteLeague, useUpdateLeagueStatus
+- [x] useUpdatePlayerName, useUpdatePlayerRole
+- [ ] useSessions (節管理用)
+- [ ] useScores (スコア入力用)
+- [ ] useRanking (ランキング表示用)
 
 ### テスト・リリース
 - [ ] テスト実装（Jest/Vitest）
@@ -111,4 +145,24 @@
 
 ---
 
-**最終更新:** 2025-11-16
+## 次のマイルストーン
+
+### Phase 1: UI基盤構築（優先）
+1. リーグ一覧/詳細ページの実装
+2. リーグ作成フォームの実装
+3. プレイヤー管理UIの実装
+
+### Phase 2: 節・卓管理（中期）
+1. 節管理APIの実装
+2. 卓管理APIの実装
+3. 卓割り当てUIの実装
+
+### Phase 3: スコア入力・ランキング（後期）
+1. スコア入力APIの実装
+2. ランキング表示APIの実装
+3. スコア入力UIの実装
+4. ランキング表示UIの実装
+
+---
+
+**最終更新:** 2025-11-19
