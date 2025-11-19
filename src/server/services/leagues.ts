@@ -1,15 +1,9 @@
+import type { CreateLeagueRequest, LeaguesResponse } from '@/src/types/league'
 import { ForbiddenError, NotFoundError } from '../middleware/error-handler'
 import * as leaguesRepo from '../repositories/leagues'
 
 // リーグ作成
-export async function createLeague(
-  userId: string,
-  data: {
-    name: string
-    description?: string
-    players: Array<{ name: string }>
-  },
-) {
+export async function createLeague(userId: string, data: CreateLeagueRequest) {
   return await leaguesRepo.createLeagueWithPlayers({
     ...data,
     createdBy: userId,
@@ -17,9 +11,19 @@ export async function createLeague(
 }
 
 // リーグ一覧取得
-export async function getLeaguesByUserId(userId: string) {
+export async function getLeaguesByUserId(userId: string): Promise<LeaguesResponse> {
   const leagues = await leaguesRepo.findLeaguesByUserId(userId)
-  return { leagues }
+  return {
+    leagues: leagues.map((league) => ({
+      id: league.id,
+      name: league.name,
+      description: league.description,
+      status: league.status,
+      createdBy: league.createdBy,
+      createdAt: league.createdAt.toISOString(),
+      updatedAt: league.updatedAt.toISOString(),
+    })),
+  }
 }
 
 // リーグ詳細取得
@@ -42,7 +46,7 @@ export async function getLeagueById(leagueId: string, userId: string) {
 export async function updateLeague(
   leagueId: string,
   userId: string,
-  data: { name?: string; description?: string },
+  data: import('@/src/types/league').UpdateLeagueRequest,
 ) {
   const league = await findLeagueAndVerifyAdmin(leagueId, userId)
   const updatedLeague = await leaguesRepo.updateLeague(leagueId, data)

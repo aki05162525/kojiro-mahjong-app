@@ -1,0 +1,21 @@
+import 'server-only'
+import { getLeaguesByUserId } from '@/src/server/services/leagues'
+import { createClient } from '@/src/server/supabase'
+import type { LeaguesResponse } from '@/src/types/league'
+
+/**
+ * サーバー側でリーグ一覧を取得
+ * Server Component または Server Action から呼び出す
+ */
+export async function getLeaguesForUser(): Promise<LeaguesResponse> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { leagues: [] }
+  }
+
+  return await getLeaguesByUserId(user.id)
+}
