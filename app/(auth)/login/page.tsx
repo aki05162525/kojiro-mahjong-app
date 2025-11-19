@@ -40,7 +40,6 @@ export default function LoginPage() {
       if (authError) {
         // セキュリティ: 一般的なエラーメッセージを使用（アカウント列挙攻撃を防ぐ）
         setError('メールアドレスまたはパスワードが正しくありません')
-        setLoading(false)
         return
       }
 
@@ -50,6 +49,7 @@ export default function LoginPage() {
     } catch (err) {
       console.error('ログイン処理中に予期せぬエラーが発生しました:', err)
       setError('ログイン中にエラーが発生しました。しばらくしてからもう一度お試しください。')
+    } finally {
       setLoading(false)
     }
   }
