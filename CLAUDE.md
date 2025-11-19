@@ -191,6 +191,33 @@ export function createClient() {
 3. 認証ユーザー ID を `c.get('userId')` にセット
 4. Services で権限チェックに利用
 
+### AuthProvider の一元化（Client Component 用）
+
+**重要**: Client Component で認証機能が必要な場合（ログイン、ログアウトなど）は、`useAuth()` フックを使用する。
+
+- **全てのコンポーネントで `useAuth()` フックを使用する**
+  - 各コンポーネントで `createClient()` を直接呼び出さない
+  - Supabase クライアントインスタンスは AuthProvider が提供する単一のインスタンスを使用
+  - 認証関連の操作（signIn, signOut）は AuthProvider が提供するメソッドを使用
+
+- **AuthProvider は必ずルートレイアウトで有効化する**
+  - `app/layout.tsx` で `Providers` コンポーネントをラップ
+  - 全ページで認証状態にアクセス可能にする
+
+```typescript
+// ❌ Bad - コンポーネントで直接クライアント作成
+const [supabase] = useState(() => createClient())
+const handleLogin = async () => {
+  await supabase.auth.signInWithPassword(...)
+}
+
+// ✅ Good - useAuth フックを使用
+const { signIn, signOut, user } = useAuth()
+const handleLogin = async () => {
+  await signIn(email, password)
+}
+```
+
 ## コンポーネント設計パターン
 
 ### Container/Presentational パターンの採用
