@@ -18,10 +18,11 @@ interface UserMenuProps {
 export function UserMenu({ userEmail }: UserMenuProps) {
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [supabase] = useState(() => createClient())
 
   const handleLogout = async () => {
-    const supabase = createClient()
     await supabase.auth.signOut()
+    router.push('/login')
     router.refresh()
   }
 

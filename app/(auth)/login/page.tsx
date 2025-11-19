@@ -6,24 +6,15 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { SubmitHandler } from 'react-hook-form'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createClient } from '@/src/client/supabase'
+import { type LoginInput, loginSchema } from '@/src/schemas/auth'
 
-// Zodバリデーションスキーマ
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'メールアドレスは必須です')
-    .email('有効なメールアドレスを入力してください'),
-  password: z.string().min(6, 'パスワードは6文字以上で入力してください'),
-})
-
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginFormValues = LoginInput
 
 export default function LoginPage() {
   const router = useRouter()
@@ -55,8 +46,8 @@ export default function LoginPage() {
         return
       }
 
-      // ログイン成功 → ホームページへリダイレクト
-      router.push('/')
+      // ログイン成功 → リーグ一覧へリダイレクト
+      router.push('/leagues')
       router.refresh()
     } catch (err) {
       console.error('ログイン処理中に予期せぬエラーが発生しました:', err)
