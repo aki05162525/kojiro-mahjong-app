@@ -18,12 +18,35 @@ interface UserMenuProps {
 export function UserMenu({ userEmail }: UserMenuProps) {
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [supabase] = useState(() => createClient())
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    if (isLoggingOut) {
+      return
+    }
+
+    setIsLoggingOut(true)
+
+    try {
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error('[UserMenu] Logout failed:', error)
+        // エラー時はボタンを再度有効化してリトライ可能に
+        setIsLoggingOut(false)
+        // TODO: Toast でエラー表示（shadcn/ui の toast を追加後に実装）
+        alert('ログアウトに失敗しました。もう一度お試しください。')
+        return
+      }
+
+      router.push('/login')
+      router.refresh()
+    } catch (error) {
+      console.error('[UserMenu] Unexpected error during logout:', error)
+      setIsLoggingOut(false)
+      alert('ログアウト中にエラーが発生しました。もう一度お試しください。')
+    }
   }
 
   return (
@@ -34,9 +57,15 @@ export function UserMenu({ userEmail }: UserMenuProps) {
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">{userEmail}</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="gap-2"
+        >
           <LogOut className="h-4 w-4" />
-          ログアウト
+          {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
         </Button>
       </div>
 
@@ -67,9 +96,15 @@ export function UserMenu({ userEmail }: UserMenuProps) {
                   <User className="h-4 w-4" />
                   <span className="font-medium text-foreground">{userEmail}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleLogout} className="w-full gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="w-full gap-2"
+                >
                   <LogOut className="h-4 w-4" />
-                  ログアウト
+                  {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
                 </Button>
               </div>
             </nav>
