@@ -57,7 +57,7 @@ app/
 ├── (public)/               # 非ログイン利用者向け。LPや説明ページをまとめる
 ├── (dashboard)/            # 認証必須のアプリケーション本体
 │   ├── layout.tsx          # ダッシュボード専用UIの共有レイアウト
-│   └── [feature]/page.tsx  # 機能単位のルート（例: leagus、records）
+│   └── [feature]/page.tsx  # 機能単位のルート（例: leagues、records）
 ├── (auth)/login/page.tsx   # 認証系（`(auth)`ルートに集約）
 ├── providers.tsx           # QueryClient/Supabase/AuthなどのProvider集約
 ├── api/[...route]/route.ts # Next.js API。app配下で唯一サーバ側のimportを許可
