@@ -37,14 +37,16 @@ export default function LeaguesPage() {
 
   const leagues = data?.leagues || []
 
-  // ステータスバッジのスタイル
+  // ステータスバッジのスタイル（Atlassian Design System準拠）
   const getStatusBadge = (status: string) => {
     const baseClasses = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium'
     switch (status) {
       case 'active':
-        return `${baseClasses} bg-[hsl(var(--ds-status-success-light))] text-[hsl(var(--ds-status-success))]`
+        // Information (Blue): 進行中の状態を表現
+        return `${baseClasses} bg-[hsl(var(--ds-status-info-light))] text-[hsl(var(--ds-status-info))]`
       case 'completed':
-        return `${baseClasses} bg-[hsl(var(--ds-neutral-100))] text-[hsl(var(--ds-neutral-600))]`
+        // Success (Green): 完了状態を表現
+        return `${baseClasses} bg-[hsl(var(--ds-status-success-light))] text-[hsl(var(--ds-status-success))]`
       default:
         return `${baseClasses} bg-muted text-muted-foreground`
     }
