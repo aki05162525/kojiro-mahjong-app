@@ -339,6 +339,51 @@ export function getDatabaseUrl(): string {
 
 ---
 
+## エラーハンドリングとローディング状態
+
+### 非同期処理での状態管理
+
+**`finally` ブロックで状態をリセットする**:
+- 成功時・失敗時の両方で確実にローディング状態をリセット
+- Next.js の `router.push()` などのナビゲーション後も適切に状態管理
+
+```typescript
+// ❌ Bad - 成功時に loading がリセットされない
+const onSubmit = async (data) => {
+  setLoading(true)
+  try {
+    await signIn(data)
+    if (error) {
+      setLoading(false) // エラー時のみリセット
+      return
+    }
+    router.push('/dashboard') // 成功時はリセットされず disabled のまま
+  } catch (err) {
+    setLoading(false)
+  }
+}
+
+// ✅ Good - finally で必ずリセット
+const onSubmit = async (data) => {
+  setLoading(true)
+  try {
+    await signIn(data)
+    if (error) {
+      return
+    }
+    router.push('/dashboard')
+  } catch (err) {
+    // エラーハンドリング
+  } finally {
+    setLoading(false) // 必ず実行される
+  }
+}
+```
+
+**理由**: ナビゲーション後にユーザーが戻ってきた場合でも、フォームが使用可能な状態を保つため。
+
+---
+
 ## 開発フロー：新機能追加
 
 1. `db/schema/` にスキーマ追加 → `db:generate` → `db:migrate`
