@@ -8,7 +8,14 @@ import { UserMenu } from './user-menu'
  * Atlassian Design System の Page Header パターンに準拠
  */
 export async function PageHeader() {
-  const user = await getCurrentUser()
+  let user = null
+
+  try {
+    user = await getCurrentUser()
+  } catch (error) {
+    console.error('[PageHeader] Failed to fetch user:', error)
+    // エラー時は未ログイン状態として扱う
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[hsl(var(--ds-neutral-200))] bg-[hsl(var(--ds-neutral-0))] shadow-sm">
