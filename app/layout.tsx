@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import './globals.css'
-import { PageHeader } from '@/components/common/page-header'
+import { Toaster } from '@/components/ui/toaster'
 import { Providers } from './providers'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Kojiro Mahjong App',
@@ -17,8 +17,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <PageHeader />
           {children}
+          <Toaster />
         </Providers>
       </body>
     </html>

@@ -1,9 +1,17 @@
 import { z } from '@hono/zod-openapi'
+import {
+  createLeagueSchema,
+  leagueStatusSchema,
+  playerNameSchema,
+  playerRoleSchema,
+  updateLeagueSchema,
+  updateLeagueStatusSchema,
+} from '@/src/schemas/leagues'
 
 /**
- * Player role enum
+ * Player role enum (OpenAPI decorated)
  */
-export const PlayerRoleSchema = z.enum(['admin', 'scorer', 'viewer']).nullable().openapi({
+export const PlayerRoleSchema = playerRoleSchema.openapi({
   description: 'Player role (null if no role assigned)',
   example: 'admin',
 })
@@ -34,9 +42,9 @@ export const PlayerSchema = z
   .openapi('Player')
 
 /**
- * League status enum
+ * League status enum (OpenAPI decorated)
  */
-export const LeagueStatusSchema = z.enum(['active', 'completed', 'deleted']).openapi({
+export const LeagueStatusSchema = leagueStatusSchema.openapi({
   description: 'League status',
   example: 'active',
 })
@@ -120,22 +128,16 @@ export const LeaguesResponseSchema = z
   .openapi('LeaguesResponse')
 
 /**
- * Player schema for league creation
+ * Player schema for league creation (OpenAPI decorated)
  */
-const PlayerNameSchema = z
-  .object({
-    name: z.string().min(1).max(20).openapi({
-      example: 'Player 1',
-      description: 'Player name (1-20 characters)',
-    }),
-  })
-  .openapi('PlayerName')
+const PlayerNameSchema = playerNameSchema.openapi('PlayerName')
 
 /**
- * Create league request
+ * Create league request (OpenAPI decorated)
+ * 基本スキーマに OpenAPI メタデータを追加
  */
-export const CreateLeagueRequestSchema = z
-  .object({
+export const CreateLeagueRequestSchema = createLeagueSchema
+  .extend({
     name: z.string().min(1).max(20).openapi({
       example: '2025 Spring League',
       description: 'League name (1-20 characters)',
@@ -163,10 +165,10 @@ export const CreateLeagueRequestSchema = z
   .openapi('CreateLeagueRequest')
 
 /**
- * Update league request
+ * Update league request (OpenAPI decorated)
  */
-export const UpdateLeagueRequestSchema = z
-  .object({
+export const UpdateLeagueRequestSchema = updateLeagueSchema
+  .extend({
     name: z.string().min(1).max(20).optional().openapi({
       example: '2025 Spring League (Updated)',
       description: 'League name (1-20 characters)',
@@ -179,10 +181,8 @@ export const UpdateLeagueRequestSchema = z
   .openapi('UpdateLeagueRequest')
 
 /**
- * Update league status request
+ * Update league status request (OpenAPI decorated)
  */
-export const UpdateLeagueStatusRequestSchema = z
-  .object({
-    status: LeagueStatusSchema,
-  })
-  .openapi('UpdateLeagueStatusRequest')
+export const UpdateLeagueStatusRequestSchema = updateLeagueStatusSchema.openapi(
+  'UpdateLeagueStatusRequest',
+)

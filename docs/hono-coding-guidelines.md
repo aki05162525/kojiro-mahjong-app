@@ -33,40 +33,45 @@ This project maintains **two separate Hono applications** for different purposes
 ## Directory Structure
 
 ```
-src/server/
-├── routes/                 # Hono RPC App (frontend use)
-│   ├── index.ts            # ★ Use Hono, export AppType
-│   ├── leagues.ts          # ★ Use Hono
-│   └── players.ts          # ★ Use Hono
+src/
+├── schemas/                # ★ Shared Zod schemas (NEW)
+│   └── leagues.ts          # ★ Use z from 'zod' (common for RPC & OpenAPI)
 │
-├── openapi/                # OpenAPI App (documentation, external clients)
-│   ├── index.ts            # ★ Use OpenAPIHono, mount /doc and /ui
-│   ├── schemas/            # ★ Use z from '@hono/zod-openapi'
-│   │   ├── common.ts
-│   │   └── leagues.ts
-│   └── routes/             # ★ Use OpenAPIHono, createRoute
-│       └── leagues.ts
+├── types/                  # TypeScript type definitions
+│   └── league.ts           # Interface definitions
 │
-├── services/               # Business logic (shared by both)
-│   └── leagues.ts
-│
-├── repositories/           # Data access (shared by both)
-│   └── leagues.ts
-│
-├── validators/             # Zod schemas for RPC routes
-│   └── leagues.ts          # ★ Use z from 'zod'
-│
-└── middleware/             # Auth, error handling (shared by both)
-    ├── auth.ts
-    └── error-handler.ts
+└── server/
+    ├── routes/             # Hono RPC App (frontend use)
+    │   ├── index.ts        # ★ Use Hono, export AppType
+    │   ├── leagues.ts      # ★ Use Hono, import from @/src/schemas
+    │   └── players.ts      # ★ Use Hono, import from @/src/schemas
+    │
+    ├── openapi/            # OpenAPI App (documentation, external clients)
+    │   ├── index.ts        # ★ Use OpenAPIHono, mount /doc and /ui
+    │   ├── schemas/        # ★ Use z from '@hono/zod-openapi'
+    │   │   ├── common.ts
+    │   │   └── leagues.ts  # ★ Import base schemas from @/src/schemas
+    │   └── routes/         # ★ Use OpenAPIHono, createRoute
+    │       └── leagues.ts
+    │
+    ├── services/           # Business logic (shared by both)
+    │   └── leagues.ts
+    │
+    ├── repositories/       # Data access (shared by both)
+    │   └── leagues.ts
+    │
+    └── middleware/         # Auth, error handling (shared by both)
+        ├── auth.ts
+        └── error-handler.ts
 ```
 
 ### Key Points
 
-- **`src/server/routes/`**: Pure Hono RPC, NO OpenAPI code
-- **`src/server/openapi/`**: Pure OpenAPI, separate from RPC
+- **`src/schemas/`**: Shared base Zod schemas for frontend & backend validation
+- **`src/types/`**: Shared TypeScript types (interfaces, not Zod)
+- **`src/server/routes/`**: Pure Hono RPC, imports from `@/src/schemas`
+- **`src/server/openapi/`**: Pure OpenAPI, extends base schemas with `.openapi()` decorators
 - **`src/server/services/`**: Shared business logic (function-based, not class-based)
-- **`src/server/validators/`**: RPC validators using standard `zod`
 
 ---
 
@@ -85,15 +90,17 @@ import { z } from '@hono/zod-openapi'  // NEVER use @hono/zod-openapi in validat
 ### ✅ CORRECT: Proper imports
 
 ```typescript
+// ✅ Shared Schemas (src/schemas/*.ts)
+import { z } from 'zod'
+
 // ✅ RPC Routes (src/server/routes/*.ts)
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-
-// ✅ RPC Validators (src/server/validators/*.ts)
-import { z } from 'zod'
+import { createLeagueSchema } from '@/src/schemas/leagues'
 
 // ✅ OpenAPI Schemas (src/server/openapi/schemas/*.ts)
 import { z } from '@hono/zod-openapi'
+import { createLeagueSchema } from '@/src/schemas/leagues'  // Base schema
 
 // ✅ OpenAPI Routes (src/server/openapi/routes/*.ts)
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
@@ -101,13 +108,13 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
 
 ### Import Checklist
 
-| File Type | Hono Import | Zod Import |
-|-----------|-------------|------------|
-| `src/server/routes/**/*.ts` | `Hono` | N/A (use validators) |
-| `src/server/validators/**/*.ts` | N/A | `zod` |
-| `src/server/openapi/schemas/**/*.ts` | N/A | `@hono/zod-openapi` |
-| `src/server/openapi/routes/**/*.ts` | `OpenAPIHono` | `@hono/zod-openapi` |
-| `src/server/openapi/index.ts` | `OpenAPIHono` | `@hono/zod-openapi` |
+| File Type | Hono Import | Zod Import | Base Schemas |
+|-----------|-------------|------------|--------------|
+| `src/schemas/**/*.ts` | N/A | `zod` | N/A |
+| `src/server/routes/**/*.ts` | `Hono` | N/A | `@/src/schemas` |
+| `src/server/openapi/schemas/**/*.ts` | N/A | `@hono/zod-openapi` | `@/src/schemas` |
+| `src/server/openapi/routes/**/*.ts` | `OpenAPIHono` | `@hono/zod-openapi` | N/A |
+| `src/server/openapi/index.ts` | `OpenAPIHono` | `@hono/zod-openapi` | N/A |
 
 ---
 
@@ -145,10 +152,10 @@ export default routes
 ```typescript
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
+import { createLeagueSchema } from '@/src/schemas/leagues'
 import type { AuthContext } from '../middleware/auth'
 import { authMiddleware } from '../middleware/auth'
 import * as leaguesService from '../services/leagues'
-import { createLeagueSchema } from '../validators/leagues'
 
 const app = new Hono<AuthContext>()
   // Apply auth middleware once at the top
@@ -290,9 +297,9 @@ export const DELETE = handle(app)
 
 ## Validation
 
-### RPC Validation (src/server/validators/)
+### Shared Base Schemas (src/schemas/)
 
-Use standard `zod` with detailed error messages:
+Define base validation schemas with detailed error messages:
 
 ```typescript
 import { z } from 'zod'
@@ -314,44 +321,48 @@ export const createLeagueSchema = z.object({
 })
 ```
 
+### RPC Validation (src/server/routes/)
+
+Import and use base schemas directly:
+
+```typescript
+import { zValidator } from '@hono/zod-validator'
+import { createLeagueSchema } from '@/src/schemas/leagues'
+
+app.post('/', zValidator('json', createLeagueSchema), async (c) => {
+  // Validation happens automatically
+})
+```
+
 ### OpenAPI Validation (src/server/openapi/schemas/)
 
-Use `@hono/zod-openapi` with `.openapi()` metadata:
+Extend base schemas with `.openapi()` metadata:
 
 ```typescript
 import { z } from '@hono/zod-openapi'
+import { createLeagueSchema } from '@/src/schemas/leagues'
 
-export const CreateLeagueRequestSchema = z
-  .object({
+export const CreateLeagueRequestSchema = createLeagueSchema
+  .extend({
     name: z.string().min(1).max(20).openapi({
       example: '2025 Spring League',
       description: 'League name (1-20 characters)',
     }),
-    playerCount: z.enum(['8', '16']).openapi({
-      example: '8',
-      description: 'Number of players (8 or 16)',
-    }),
-    playerNames: z.array(z.string().min(1).max(20)).openapi({
-      example: ['Player 1', 'Player 2'],
-      description: 'List of player names',
-    }),
-  })
-  .refine((data) => data.playerNames.length === Number.parseInt(data.playerCount, 10), {
-    message: 'playerNames length must match playerCount (8 or 16)',
-    path: ['playerNames'],
+    // Add OpenAPI metadata for other fields...
   })
   .openapi('CreateLeagueRequest')
 ```
 
 **Key Differences:**
 
-| Feature | RPC Validators | OpenAPI Schemas |
-|---------|---------------|-----------------|
-| Import | `zod` | `@hono/zod-openapi` |
-| Error messages | User-friendly | API-focused |
-| Examples | Not needed | Required via `.openapi()` |
-| Descriptions | Not needed | Required via `.openapi()` |
-| Schema name | Not needed | Required via `.openapi('Name')` |
+| Feature | Base Schemas | RPC Routes | OpenAPI Schemas |
+|---------|-------------|-----------|-----------------|
+| Location | `src/schemas/` | `src/server/routes/` | `src/server/openapi/schemas/` |
+| Import | `zod` | `@/src/schemas` | `@hono/zod-openapi` + `@/src/schemas` |
+| Error messages | User-friendly | Inherit from base | API-focused |
+| Examples | Not needed | Not needed | Required via `.openapi()` |
+| Descriptions | Not needed | Not needed | Required via `.openapi()` |
+| Usage | Define | Use as-is | Extend with `.openapi()` |
 
 ### Cross-validation Rules
 
@@ -515,20 +526,20 @@ const app = new Hono().basePath('/api')
 export default app
 ```
 
-### 2. ❌ Wrong Zod Import in Validators
+### 2. ❌ Wrong Zod Import in Base Schemas
 
 **Problem:**
 
 ```typescript
-// ❌ src/server/validators/leagues.ts
+// ❌ src/schemas/leagues.ts
 import { z } from '@hono/zod-openapi'  // WRONG!
 ```
 
 **Solution:**
 
 ```typescript
-// ✅ src/server/validators/leagues.ts
-import { z } from 'zod'  // Use standard zod
+// ✅ src/schemas/leagues.ts
+import { z } from 'zod'  // Use standard zod (not OpenAPI version)
 ```
 
 ### 3. ❌ Exporting App Instead of Routes
@@ -635,9 +646,11 @@ app.get('/', async (c) => {
 
 ## Checklist Before Committing
 
+- [ ] Base schemas in `src/schemas/` use `zod`, NOT `@hono/zod-openapi`
+- [ ] RPC routes import schemas from `@/src/schemas/`, NOT `../validators/`
 - [ ] RPC routes use `Hono`, NOT `OpenAPIHono`
-- [ ] RPC validators use `zod`, NOT `@hono/zod-openapi`
-- [ ] OpenAPI schemas use `@hono/zod-openapi` with `.openapi()` metadata
+- [ ] OpenAPI schemas extend base schemas with `.openapi()` decorators
+- [ ] OpenAPI schemas use `@hono/zod-openapi` for decorators only
 - [ ] `src/server/routes/index.ts` exports `AppType` from `routes`, not `app`
 - [ ] No OpenAPI code (`app.doc()`, `swaggerUI()`) in `src/server/routes/`
 - [ ] Route mounting order: RPC first, OpenAPI second
