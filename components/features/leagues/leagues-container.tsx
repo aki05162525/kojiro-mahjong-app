@@ -4,18 +4,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { apiClient } from '@/src/client/api'
+import type { LeaguesResponse } from '@/src/types/league'
 import { LeaguesList } from './leagues-list'
 
-interface League {
-  id: string
-  name: string
-  description: string | null
-  status: string
-  createdAt: string
-}
-
 interface LeaguesContainerProps {
-  initialData: { leagues: League[] }
+  initialData: LeaguesResponse
 }
 
 /**

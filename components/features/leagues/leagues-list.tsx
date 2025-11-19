@@ -2,14 +2,7 @@ import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-interface League {
-  id: string
-  name: string
-  description: string | null
-  status: string
-  createdAt: string
-}
+import type { League } from '@/src/types/league'
 
 interface LeaguesListProps {
   leagues: League[]
