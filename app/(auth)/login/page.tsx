@@ -11,16 +11,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { createClient } from '@/src/client/supabase'
+import { useAuth } from '@/src/client/context/auth-context'
 import { type LoginInput, loginSchema } from '@/src/schemas/auth'
 
 type LoginFormValues = LoginInput
 
 export default function LoginPage() {
   const router = useRouter()
+  const { signIn } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [supabase] = useState(() => createClient())
 
   const {
     register,
@@ -35,14 +35,12 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      // Supabase Authでログイン
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      })
+      const { error: authError } = await signIn(data.email, data.password)
 
       if (authError) {
-        setError(authError.message)
+        // セキュリティ: 一般的なエラーメッセージを使用（アカウント列挙攻撃を防ぐ）
+        setError('メールアドレスまたはパスワードが正しくありません')
+        setLoading(false)
         return
       }
 
@@ -51,8 +49,7 @@ export default function LoginPage() {
       router.refresh()
     } catch (err) {
       console.error('ログイン処理中に予期せぬエラーが発生しました:', err)
-      setError('ログイン中にエラーが発生しました')
-    } finally {
+      setError('ログイン中にエラーが発生しました。しばらくしてからもう一度お試しください。')
       setLoading(false)
     }
   }

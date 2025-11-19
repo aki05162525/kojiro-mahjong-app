@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/src/client/supabase'
+import { useAuth } from '@/src/client/context/auth-context'
 
 interface UserMenuProps {
   userEmail: string
@@ -17,9 +17,9 @@ interface UserMenuProps {
  */
 export function UserMenu({ userEmail }: UserMenuProps) {
   const router = useRouter()
+  const { signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [supabase] = useState(() => createClient())
 
   const handleLogout = async () => {
     if (isLoggingOut) {
@@ -28,25 +28,17 @@ export function UserMenu({ userEmail }: UserMenuProps) {
 
     setIsLoggingOut(true)
 
-    try {
-      const { error } = await supabase.auth.signOut()
+    const { error } = await signOut()
 
-      if (error) {
-        console.error('[UserMenu] Logout failed:', error)
-        // エラー時はボタンを再度有効化してリトライ可能に
-        setIsLoggingOut(false)
-        // TODO: Toast でエラー表示（shadcn/ui の toast を追加後に実装）
-        alert('ログアウトに失敗しました。もう一度お試しください。')
-        return
-      }
-
-      router.push('/login')
-      router.refresh()
-    } catch (error) {
-      console.error('[UserMenu] Unexpected error during logout:', error)
+    if (error) {
+      // エラー時はボタンを再度有効化してリトライ可能に
       setIsLoggingOut(false)
-      alert('ログアウト中にエラーが発生しました。もう一度お試しください。')
+      alert('ログアウトに失敗しました。もう一度お試しください。')
+      return
     }
+
+    router.push('/login')
+    router.refresh()
   }
 
   return (
