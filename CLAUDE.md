@@ -161,7 +161,44 @@ routes/leagues.ts
 
 ---
 
-## 認証フロー
+## 認証の実装パターン
+
+### Supabase SSR の使用
+
+- **Server Component での認証**: `@supabase/ssr` の `createServerClient` を使用
+- **Client Component での認証**: `@supabase/ssr` の `createBrowserClient` を使用
+- **Middleware での認証トークン更新**: `middleware.ts` で全リクエストに対してトークンをリフレッシュ
+
+```typescript
+// Server Component 用クライアント (src/server/supabase.ts)
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export async function createClient() {
+  const cookieStore = await cookies()
+  return createServerClient(url, anonKey, {
+    cookies: {
+      getAll() { return cookieStore.getAll() },
+      setAll(cookiesToSet) { /* ... */ }
+    }
+  })
+}
+
+// Client Component 用クライアント (src/client/supabase.ts)
+import { createBrowserClient } from '@supabase/ssr'
+
+export function createClient() {
+  return createBrowserClient(url, anonKey)
+}
+```
+
+### 認証状態の取得
+
+- **Server Component**: `await supabase.auth.getUser()` でサーバー側で取得
+- **Client Component**: インタラクティブな部分のみクライアントコンポーネント化
+- **非推奨**: `useAuth` のような Client 側専用フックは使わない（SSR を優先）
+
+### API 認証フロー（Hono RPC）
 
 1. フロントエンドは `Authorization: Bearer <JWT>` を送信
 2. `authMiddleware` が Supabase を用いて検証
@@ -175,6 +212,71 @@ routes/leagues.ts
 - React Query + Hono RPC クライアント
 - クライアントは `src/client/api.ts`
 - 型安全な API: `apiClient.api.leagues.$get()`
+
+---
+
+## コンポーネント設計パターン
+
+### Container/Presentational パターンの採用
+
+リーグ一覧など、データ取得とUIを分離する場合は以下のパターンを使用:
+
+```
+components/features/[feature]/
+├── [feature]-list.tsx        # Presentational（見た目のみ）
+└── [feature]-container.tsx   # Container（ロジック）
+
+app/[feature]/
+└── page.tsx                  # Server Component（データ取得）
+
+src/server/actions/
+└── [feature].ts              # Server Action（データ取得関数）
+```
+
+**役割分担**:
+- **page.tsx** (Server Component): サーバー側でデータ取得、SSR
+- **Container** (Client Component): React Query でキャッシュ管理、ルーティング、エラーハンドリング
+- **Presentational** (Client/Server Component): 純粋な表示ロジックのみ、props で受け取った値を表示
+
+**メリット**:
+- 初回は SSR で高速表示
+- 2回目以降は React Query のキャッシュで瞬時に表示
+- テスタブル（Presentational Component は props を渡すだけでテスト可能）
+
+---
+
+## 型定義の管理
+
+### 共通型ファイルの使用
+
+フロントエンド・バックエンド間で共有する型は `src/types/` に定義:
+
+```typescript
+// src/types/league.ts
+export interface League {
+  id: string
+  name: string
+  description: string | null
+  status: LeagueStatus
+  createdBy: string
+  createdAt: string  // ISO 8601 形式
+  updatedAt: string  // ISO 8601 形式
+}
+
+export interface LeaguesResponse {
+  leagues: League[]
+}
+```
+
+**使用箇所**:
+- Server Actions (`src/server/actions/`)
+- Services (`src/server/services/`)
+- React Components (`components/features/`)
+- API Routes (`src/server/routes/`)
+
+**注意点**:
+- Date 型は JSON シリアライズできないため、API レスポンスでは `string` (ISO 8601) を使用
+- Repository → Service 層で `Date` から `string` への変換を行う
 
 ---
 

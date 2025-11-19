@@ -48,7 +48,7 @@ export async function PageHeader() {
               <UserMenu userEmail={user.email ?? 'Unknown'} />
             ) : (
               <Button asChild size="sm">
-                <Link href="/auth/signin">ログイン</Link>
+                <Link href="/login">ログイン</Link>
               </Button>
             )}
           </div>

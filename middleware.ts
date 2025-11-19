@@ -30,10 +30,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // 認証が必要なルートの保護（オプション）
-  // 未認証ユーザーが /leagues にアクセスした場合、/auth/signin にリダイレクト
+  // 未認証ユーザーが /leagues にアクセスした場合、/login にリダイレクト
   if (!user && request.nextUrl.pathname.startsWith('/leagues')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/auth/signin'
+    url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
