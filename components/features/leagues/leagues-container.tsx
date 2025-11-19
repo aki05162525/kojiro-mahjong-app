@@ -1,9 +1,8 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { apiClient } from '@/src/client/api'
+import { useLeagues } from '@/src/client/hooks/useLeagues'
 import type { LeaguesResponse } from '@/src/types/league'
 import { LeaguesList } from './leagues-list'
 
@@ -19,18 +18,11 @@ export function LeaguesContainer({ initialData }: LeaguesContainerProps) {
   const router = useRouter()
 
   // React Query で初期データを使いつつ、バックグラウンドで再検証
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['leagues'],
-    queryFn: async () => {
-      const res = await apiClient.api.leagues.$get()
-      if (!res.ok) {
-        throw new Error('Failed to fetch leagues')
-      }
-      return await res.json()
-    },
+  const { data, isLoading, error } = useLeagues({
     initialData,
     staleTime: 1000 * 60, // 1分間はキャッシュを新鮮とみなす
   })
+  const leaguesData = data ?? initialData
 
   const handleCreateClick = () => {
     router.push('/leagues/create')
@@ -59,5 +51,5 @@ export function LeaguesContainer({ initialData }: LeaguesContainerProps) {
     )
   }
 
-  return <LeaguesList leagues={data.leagues} onCreateClick={handleCreateClick} />
+  return <LeaguesList leagues={leaguesData.leagues} onCreateClick={handleCreateClick} />
 }

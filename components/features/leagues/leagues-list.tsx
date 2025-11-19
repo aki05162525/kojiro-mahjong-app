@@ -2,7 +2,7 @@ import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import type { League } from '@/src/types/league'
+import type { League, LeagueStatus } from '@/src/types/league'
 
 interface LeaguesListProps {
   leagues: League[]
@@ -15,7 +15,7 @@ interface LeaguesListProps {
  */
 export function LeaguesList({ leagues, onCreateClick }: LeaguesListProps) {
   // ステータスバッジのスタイル（Atlassian Design System準拠）
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: LeagueStatus) => {
     const baseClasses = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium'
     switch (status) {
       case 'active':
@@ -29,14 +29,12 @@ export function LeaguesList({ leagues, onCreateClick }: LeaguesListProps) {
     }
   }
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: LeagueStatus) => {
     switch (status) {
       case 'active':
         return '進行中'
       case 'completed':
         return '完了'
-      case 'deleted':
-        return '削除済み'
       default:
         return status
     }

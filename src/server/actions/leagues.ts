@@ -1,5 +1,5 @@
 import 'server-only'
-import { findLeaguesByUserId } from '@/src/server/repositories/leagues'
+import { getLeaguesByUserId } from '@/src/server/services/leagues'
 import { createClient } from '@/src/server/supabase'
 import type { LeaguesResponse } from '@/src/types/league'
 
@@ -17,17 +17,5 @@ export async function getLeaguesForUser(): Promise<LeaguesResponse> {
     return { leagues: [] }
   }
 
-  const leagues = await findLeaguesByUserId(user.id)
-
-  return {
-    leagues: leagues.map((league) => ({
-      id: league.id,
-      name: league.name,
-      description: league.description,
-      status: league.status,
-      createdBy: league.createdBy,
-      createdAt: league.createdAt.toISOString(),
-      updatedAt: league.updatedAt.toISOString(),
-    })),
-  }
+  return await getLeaguesByUserId(user.id)
 }

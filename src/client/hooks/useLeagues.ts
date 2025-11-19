@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType } from 'hono/client'
+import type { LeaguesResponse } from '@/src/types/league'
 import { apiClient } from '../api'
+
+interface UseLeaguesOptions {
+  initialData?: LeaguesResponse
+  staleTime?: number
+}
 
 type CreateLeagueInput = InferRequestType<(typeof apiClient.api.leagues)['$post']>['json']
 type UpdateLeagueInput = InferRequestType<(typeof apiClient.api.leagues)[':id']['$patch']>['json']
@@ -21,8 +27,8 @@ type UpdatePlayerRoleInput = InferRequestType<
 /**
  * リーグ一覧を取得
  */
-export const useLeagues = () => {
-  return useQuery({
+export const useLeagues = ({ initialData, staleTime }: UseLeaguesOptions = {}) => {
+  return useQuery<LeaguesResponse>({
     queryKey: ['leagues'],
     queryFn: async () => {
       const res = await apiClient.api.leagues.$get()
@@ -31,6 +37,8 @@ export const useLeagues = () => {
       }
       return await res.json()
     },
+    initialData,
+    staleTime,
   })
 }
 
