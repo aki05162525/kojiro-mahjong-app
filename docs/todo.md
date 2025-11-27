@@ -67,12 +67,6 @@
 
 ## 現在進行中
 
-なし
-
-## TODO (優先度順)
-
-## TODO
-
 ### バックエンド機能実装
 - [ ] **節管理機能実装（0%完了）**
   - [ ] Routes (RPC): 節の作成/取得/削除
@@ -82,6 +76,18 @@
   - [ ] Validators: Zod スキーマ
   - [ ] OpenAPI Schemas
 
+### フロントエンド UI 実装
+- [ ] **リーグ管理画面**
+  - [ ] リーグ詳細ページ（`/leagues/[id]`）
+  - [ ] 節作成ボタン（リーグ詳細ページヘッダー）
+  - [ ] 節一覧表示
+
+### React Query フック作成
+- [ ] useSessions (節管理用)
+
+## TODO (優先度順)
+
+### バックエンド機能実装
 - [ ] **表（卓）管理機能実装（0%完了）**
   - [ ] Routes (RPC): 卓の作成/取得/更新
   - [ ] Routes (OpenAPI): Swagger UI 対応
@@ -115,7 +121,6 @@
 ### フロントエンド UI 実装（Next.js + shadcn/ui）
 - [ ] **リーグ管理画面**
   - [ ] リーグ一覧ページ（`/leagues`）
-  - [ ] リーグ詳細ページ（`/leagues/[id]`）
   - [ ] リーグ作成フォーム
   - [ ] リーグ設定変更フォーム
 - [ ] **プレイヤー管理画面**
@@ -123,7 +128,6 @@
   - [ ] プレイヤー名編集
   - [ ] 権限変更（admin/member）
 - [ ] **節管理画面**
-  - [ ] 節作成フォーム
   - [ ] 卓割り当て画面
   - [ ] 座順表示
 - [ ] **スコア入力画面**
@@ -140,7 +144,6 @@
 ### React Query フック作成
 - [x] useLeagues, useLeague, useCreateLeague, useUpdateLeague, useDeleteLeague, useUpdateLeagueStatus
 - [x] useUpdatePlayerName, useUpdatePlayerRole
-- [ ] useSessions (節管理用)
 - [ ] useScores (スコア入力用)
 - [ ] useRanking (ランキング表示用)
 
