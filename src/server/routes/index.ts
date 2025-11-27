@@ -21,6 +21,10 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
 // ★ playersRoutes は /leagues/:leagueId/players/* のパスを持つため、/leagues でマウント
 const routes = app.route('/leagues', leaguesRoutes).route('/leagues', playersRoutes)
 
+// ★ RPC用の型をエクスポート（フロントエンドで使用）
+// 注意: ドキュメントルート(/doc, /ui)を追加する前にエクスポートし、純粋なAPIエンドポイントの型のみを提供
+export type AppType = typeof routes
+
 // OpenAPI仕様エンドポイント
 routes.doc('/doc', {
   openapi: '3.1.0',
@@ -33,8 +37,5 @@ routes.doc('/doc', {
 
 // Swagger UI エンドポイント
 routes.get('/ui', swaggerUI({ url: '/api/doc' }))
-
-// ★ RPC用の型をエクスポート（フロントエンドで使用）
-export type AppType = typeof routes
 
 export default routes
