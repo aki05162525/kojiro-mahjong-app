@@ -21,7 +21,7 @@
 ### 環境構築
 - [x] Supabaseプロジェクト作成
 - [x] Drizzle ORM セットアップ
-- [x] Hono API セットアップ（RPC + OpenAPI 二重パターン）
+- [x] Hono API セットアップ（OpenAPI統合パターン）
 - [x] 環境変数設定（.env.local）
 - [x] 認証機能実装（Supabase Auth + JWT ミドルウェア）
   - [x] バックエンド認証ミドルウェア（`src/server/middleware/auth.ts`）
@@ -30,18 +30,18 @@
 
 ### バックエンド機能実装
 - [x] **リーグ管理機能実装（100%完了）**
-  - [x] Routes (RPC): GET/POST/PATCH/DELETE (`src/server/routes/leagues.ts`)
-  - [x] Routes (OpenAPI): Swagger UI 対応 (`src/server/openapi/routes/leagues.ts`)
+  - [x] Routes (OpenAPI統合): GET/POST/PATCH/DELETE (`src/server/routes/leagues.ts`)
   - [x] Services: ビジネスロジック (`src/server/services/leagues.ts`)
   - [x] Repositories: Drizzle ORM アクセス層 (`src/server/repositories/leagues.ts`)
   - [x] Validators: Zod スキーマ (`src/server/validators/leagues.ts`)
-  - [x] OpenAPI Schemas: 完全なスキーマ定義 (`src/server/openapi/schemas/leagues.ts`)
+  - [x] OpenAPI Schemas: 完全なスキーマ定義 (`src/server/schemas/leagues.ts`)
+  - [x] Swagger UI + RPC型安全性の両立
 
 - [x] **プレイヤー管理機能（100%完了）**
-  - [x] Routes (RPC): プレイヤー名更新、権限変更 (`src/server/routes/players.ts`)
+  - [x] Routes (OpenAPI統合): プレイヤー名更新、権限変更 (`src/server/routes/players.ts`)
   - [x] Services: プレイヤー操作ロジック (`src/server/services/players.ts`)
   - [x] Repositories: DB アクセス層 (`src/server/repositories/players.ts`)
-  - [x] Validators: playerParamSchema 等
+  - [x] OpenAPI Schemas: players用スキーマ (`src/server/schemas/players.ts`)
 
 ### フロントエンド統合
 - [x] **React Query + Hono RPC 統合（100%完了）**
@@ -58,14 +58,14 @@
   - [x] Lefthook 設定最適化（pre-commit でチェックのみ）
   - [x] VSCode 保存時自動修正設定
   - [x] Non-null assertion 削除（db/index.ts, drizzle.config.ts）
+- [x] **API アーキテクチャ改善 (#45)**
+  - [x] RPC/OpenAPI ルート定義の統合（二重管理を解消）
+  - [x] OpenAPIHono ベースへの統一
+  - [x] スキーマ統合（`src/server/schemas/`）
+  - [x] コード削減（359行→300行、約20%削減）
+  - [x] Swagger UI 統合（`/api/ui`）
 
 ## 現在進行中
-
-なし
-
-## TODO (優先度順)
-
-## TODO
 
 ### バックエンド機能実装
 - [ ] **節管理機能実装（0%完了）**
@@ -76,6 +76,18 @@
   - [ ] Validators: Zod スキーマ
   - [ ] OpenAPI Schemas
 
+### フロントエンド UI 実装
+- [ ] **リーグ管理画面**
+  - [ ] リーグ詳細ページ（`/leagues/[id]`）
+  - [ ] 節作成ボタン（リーグ詳細ページヘッダー）
+  - [ ] 節一覧表示
+
+### React Query フック作成
+- [ ] useSessions (節管理用)
+
+## TODO (優先度順)
+
+### バックエンド機能実装
 - [ ] **表（卓）管理機能実装（0%完了）**
   - [ ] Routes (RPC): 卓の作成/取得/更新
   - [ ] Routes (OpenAPI): Swagger UI 対応
@@ -109,7 +121,6 @@
 ### フロントエンド UI 実装（Next.js + shadcn/ui）
 - [ ] **リーグ管理画面**
   - [ ] リーグ一覧ページ（`/leagues`）
-  - [ ] リーグ詳細ページ（`/leagues/[id]`）
   - [ ] リーグ作成フォーム
   - [ ] リーグ設定変更フォーム
 - [ ] **プレイヤー管理画面**
@@ -117,7 +128,6 @@
   - [ ] プレイヤー名編集
   - [ ] 権限変更（admin/member）
 - [ ] **節管理画面**
-  - [ ] 節作成フォーム
   - [ ] 卓割り当て画面
   - [ ] 座順表示
 - [ ] **スコア入力画面**
@@ -134,7 +144,6 @@
 ### React Query フック作成
 - [x] useLeagues, useLeague, useCreateLeague, useUpdateLeague, useDeleteLeague, useUpdateLeagueStatus
 - [x] useUpdatePlayerName, useUpdatePlayerRole
-- [ ] useSessions (節管理用)
 - [ ] useScores (スコア入力用)
 - [ ] useRanking (ランキング表示用)
 
@@ -165,4 +174,4 @@
 
 ---
 
-**最終更新:** 2025-11-19
+**最終更新:** 2025-11-28

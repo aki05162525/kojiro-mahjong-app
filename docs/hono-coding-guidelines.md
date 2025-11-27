@@ -17,16 +17,22 @@ This document provides coding standards and best practices for Hono development 
 
 ## Architecture Overview
 
-### Two Parallel Hono Apps
+### Unified OpenAPI + RPC Pattern
 
-This project maintains **two separate Hono applications** for different purposes:
+This project uses **OpenAPIHono** as the single source of truth for both API documentation and type-safe frontend-backend communication.
 
-| App | Purpose | Technology | Consumers |
-|-----|---------|------------|-----------|
-| **RPC App** | Type-safe frontend-backend communication | `Hono` + Hono RPC | React Query hooks |
-| **OpenAPI App** | API documentation and external clients | `OpenAPIHono` | Swagger UI, SDK generators, external apps |
+| Feature | Technology | Purpose |
+|---------|------------|---------|
+| **Route Definition** | `OpenAPIHono` | All routes defined with OpenAPI metadata |
+| **Type Safety** | Hono RPC (`AppType`) | Frontend gets full type inference from OpenAPI routes |
+| **Documentation** | Swagger UI | Auto-generated from OpenAPI definitions |
+| **Validation** | `@hono/zod-openapi` | Zod schemas with OpenAPI metadata |
 
-**Critical Rule:** These two apps must **never** mix their technologies. Keep them completely separate.
+**Key Benefits:**
+- ✅ **Single source of truth**: One route definition serves both RPC and OpenAPI
+- ✅ **No duplication**: Eliminates the need to maintain separate RPC and OpenAPI routes
+- ✅ **Always in sync**: Documentation and types are always consistent
+- ✅ **Reduced maintenance**: ~20% less code compared to dual-pattern approach
 
 ---
 
@@ -34,157 +40,91 @@ This project maintains **two separate Hono applications** for different purposes
 
 ```
 src/
-├── schemas/                # ★ Shared Zod schemas (NEW)
-│   └── leagues.ts          # ★ Use z from 'zod' (common for RPC & OpenAPI)
+├── schemas/                # ★ Shared Zod schemas (Base validation)
+│   └── leagues.ts          # ★ Use z from 'zod' (for RPC validators)
 │
 ├── types/                  # TypeScript type definitions
 │   └── league.ts           # Interface definitions
 │
 └── server/
-    ├── routes/             # Hono RPC App (frontend use)
-    │   ├── index.ts        # ★ Use Hono, export AppType
-    │   ├── leagues.ts      # ★ Use Hono, import from @/src/schemas
-    │   └── players.ts      # ★ Use Hono, import from @/src/schemas
+    ├── routes/             # ★ OpenAPI + RPC unified routes
+    │   ├── index.ts        # ★ Use OpenAPIHono, export AppType
+    │   ├── leagues.ts      # ★ Use OpenAPIHono + createRoute
+    │   └── players.ts      # ★ Use OpenAPIHono + createRoute
     │
-    ├── openapi/            # OpenAPI App (documentation, external clients)
-    │   ├── index.ts        # ★ Use OpenAPIHono, mount /doc and /ui
-    │   ├── schemas/        # ★ Use z from '@hono/zod-openapi'
-    │   │   ├── common.ts
-    │   │   └── leagues.ts  # ★ Import base schemas from @/src/schemas
-    │   └── routes/         # ★ Use OpenAPIHono, createRoute
-    │       └── leagues.ts
+    ├── schemas/            # ★ OpenAPI schemas (with .openapi() metadata)
+    │   ├── common.ts       # ★ Error response schemas
+    │   ├── leagues.ts      # ★ League-related OpenAPI schemas
+    │   └── players.ts      # ★ Player-related OpenAPI schemas
     │
-    ├── services/           # Business logic (shared by both)
+    ├── services/           # Business logic (shared)
     │   └── leagues.ts
     │
-    ├── repositories/       # Data access (shared by both)
+    ├── repositories/       # Data access (shared)
     │   └── leagues.ts
     │
-    └── middleware/         # Auth, error handling (shared by both)
+    ├── validators/         # ★ Legacy: being migrated to schemas/
+    │   └── leagues.ts      # ★ TODO: Migrate to @/src/schemas
+    │
+    └── middleware/         # Auth, error handling
         ├── auth.ts
         └── error-handler.ts
 ```
 
 ### Key Points
 
-- **`src/schemas/`**: Shared base Zod schemas for frontend & backend validation
-- **`src/types/`**: Shared TypeScript types (interfaces, not Zod)
-- **`src/server/routes/`**: Pure Hono RPC, imports from `@/src/schemas`
-- **`src/server/openapi/`**: Pure OpenAPI, extends base schemas with `.openapi()` decorators
-- **`src/server/services/`**: Shared business logic (function-based, not class-based)
+- **`src/schemas/`**: Base Zod schemas for validators (plain `zod`)
+- **`src/server/schemas/`**: OpenAPI-decorated schemas (`@hono/zod-openapi`)
+- **`src/server/routes/`**: All routes use `OpenAPIHono` + `createRoute`
+- **`src/server/validators/`**: Legacy directory, being phased out
 
 ---
 
 ## Import Rules
 
-### ❌ WRONG: Mixing imports
+### ✅ CORRECT: Unified OpenAPI Pattern
 
 ```typescript
-// ❌ In RPC routes (src/server/routes/)
-import { OpenAPIHono } from '@hono/zod-openapi'  // NEVER use OpenAPIHono in RPC routes
-
-// ❌ In RPC validators (src/server/validators/)
-import { z } from '@hono/zod-openapi'  // NEVER use @hono/zod-openapi in validators
-```
-
-### ✅ CORRECT: Proper imports
-
-```typescript
-// ✅ Shared Schemas (src/schemas/*.ts)
+// ✅ Shared Base Schemas (src/schemas/*.ts)
 import { z } from 'zod'
 
-// ✅ RPC Routes (src/server/routes/*.ts)
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { createLeagueSchema } from '@/src/schemas/leagues'
-
-// ✅ OpenAPI Schemas (src/server/openapi/schemas/*.ts)
+// ✅ OpenAPI Schemas (src/server/schemas/*.ts)
 import { z } from '@hono/zod-openapi'
-import { createLeagueSchema } from '@/src/schemas/leagues'  // Base schema
 
-// ✅ OpenAPI Routes (src/server/openapi/routes/*.ts)
+// ✅ Unified Routes (src/server/routes/*.ts)
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi'
+import type { AuthContext } from '../middleware/auth'
+import { authMiddleware } from '../middleware/auth'
+import * as leaguesService from '../services/leagues'
+import {
+  LeaguesResponseSchema,
+  CreateLeagueRequestSchema,
+  UnauthorizedResponse
+} from '../schemas/leagues'
 ```
 
 ### Import Checklist
 
-| File Type | Hono Import | Zod Import | Base Schemas |
-|-----------|-------------|------------|--------------|
-| `src/schemas/**/*.ts` | N/A | `zod` | N/A |
-| `src/server/routes/**/*.ts` | `Hono` | N/A | `@/src/schemas` |
-| `src/server/openapi/schemas/**/*.ts` | N/A | `@hono/zod-openapi` | `@/src/schemas` |
-| `src/server/openapi/routes/**/*.ts` | `OpenAPIHono` | `@hono/zod-openapi` | N/A |
-| `src/server/openapi/index.ts` | `OpenAPIHono` | `@hono/zod-openapi` | N/A |
+| File Type | Hono Import | Zod Import | Purpose |
+|-----------|-------------|------------|---------|
+| `src/schemas/**/*.ts` | N/A | `zod` | Base validation schemas |
+| `src/server/schemas/**/*.ts` | N/A | `@hono/zod-openapi` | OpenAPI-decorated schemas |
+| `src/server/routes/**/*.ts` | `OpenAPIHono` | `@hono/zod-openapi` | Unified route definitions |
 
 ---
 
 ## Routing Patterns
 
-### RPC Route Definition Pattern
+### Unified Route Definition Pattern
 
 **File: `src/server/routes/index.ts`**
-
-```typescript
-import { Hono } from 'hono'
-import { errorHandler } from '../middleware/error-handler'
-import leaguesRoutes from './leagues'
-import playersRoutes from './players'
-
-const app = new Hono().basePath('/api')
-
-// Register error handler
-app.onError(errorHandler)
-
-// Chain routes and assign to routes
-const routes = app
-  .route('/leagues', leaguesRoutes)
-  .route('/players', playersRoutes)
-
-// ★ CRITICAL: Export AppType from routes, not app
-export type AppType = typeof routes
-
-// ★ CRITICAL: Export routes as default, not app
-export default routes
-```
-
-**File: `src/server/routes/leagues.ts`**
-
-```typescript
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
-import { createLeagueSchema } from '@/src/schemas/leagues'
-import type { AuthContext } from '../middleware/auth'
-import { authMiddleware } from '../middleware/auth'
-import * as leaguesService from '../services/leagues'
-
-const app = new Hono<AuthContext>()
-  // Apply auth middleware once at the top
-  .use('*', authMiddleware)
-  // ⚠️ Always chain handlers so Hono RPC can infer schema (do NOT call methods separately)
-  .get('/', async (c) => {
-    const userId = c.get('userId')
-    const result = await leaguesService.getLeaguesByUserId(userId)
-    return c.json(result, 200)
-  })
-  .post('/', zValidator('json', createLeagueSchema), async (c) => {
-    const userId = c.get('userId')
-    const data = c.req.valid('json')
-    const league = await leaguesService.createLeague(userId, data)
-    return c.json(league, 201)
-  })
-
-export default app
-```
-
-### OpenAPI Route Definition Pattern
-
-**File: `src/server/openapi/index.ts`**
 
 ```typescript
 import { swaggerUI } from '@hono/swagger-ui'
 import { OpenAPIHono } from '@hono/zod-openapi'
 import { errorHandler } from '../middleware/error-handler'
-import leaguesOpenAPIRoutes from './routes/leagues'
+import leaguesRoutes from './leagues'
+import playersRoutes from './players'
 
 const app = new OpenAPIHono().basePath('/api')
 
@@ -199,11 +139,17 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
   description: 'Supabase Auth JWT token',
 })
 
-// Register OpenAPI routes
-app.route('/leagues', leaguesOpenAPIRoutes)
+// Mount route modules
+const routes = app
+  .route('/leagues', leaguesRoutes)
+  .route('/leagues', playersRoutes)  // Players routes are under /leagues/:leagueId/players
 
-// OpenAPI spec endpoint
-app.doc('/doc', {
+// ★ CRITICAL: Export AppType BEFORE adding doc routes
+// This ensures RPC clients only see API endpoints, not documentation routes
+export type AppType = typeof routes
+
+// Add OpenAPI documentation endpoints
+routes.doc('/doc', {
   openapi: '3.1.0',
   info: {
     version: '1.0.0',
@@ -213,30 +159,44 @@ app.doc('/doc', {
 })
 
 // Swagger UI endpoint
-app.get('/ui', swaggerUI({ url: '/api/doc' }))
+routes.get('/ui', swaggerUI({ url: '/api/doc' }))
 
-export default app
+export default routes
 ```
 
-**File: `src/server/openapi/routes/leagues.ts`**
+**File: `src/server/routes/leagues.ts`**
 
 ```typescript
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
-import type { AuthContext } from '../../middleware/auth'
-import { authMiddleware } from '../../middleware/auth'
-import * as leaguesService from '../../services/leagues'
-import { LeaguesResponseSchema, UnauthorizedResponse } from '../schemas/leagues'
+import type { AuthContext } from '../middleware/auth'
+import { authMiddleware } from '../middleware/auth'
+import * as leaguesService from '../services/leagues'
+import {
+  ForbiddenResponse,
+  NotFoundResponse,
+  UnauthorizedResponse,
+} from '../schemas/common'
+import {
+  CreateLeagueRequestSchema,
+  LeagueSchema,
+  LeaguesResponseSchema,
+  UpdateLeagueRequestSchema,
+} from '../schemas/leagues'
 
 const app = new OpenAPIHono<AuthContext>()
 
+// Apply auth middleware to all routes
 app.use('*', authMiddleware)
 
-// Define route with createRoute
+/**
+ * GET /api/leagues - Get leagues list
+ */
 const getLeaguesRoute = createRoute({
   method: 'get',
   path: '/',
   tags: ['leagues'],
   summary: 'Get leagues list',
+  description: 'Get list of leagues the user participates in',
   security: [{ Bearer: [] }],
   responses: {
     200: {
@@ -245,18 +205,19 @@ const getLeaguesRoute = createRoute({
           schema: LeaguesResponseSchema,
         },
       },
-      description: 'Successfully retrieved leagues',
+      description: 'Successfully retrieved leagues list',
     },
     401: UnauthorizedResponse,
   },
 })
 
-// Implement with app.openapi()
 app.openapi(getLeaguesRoute, async (c) => {
   const userId = c.get('userId')
   const result = await leaguesService.getLeaguesByUserId(userId)
   return c.json(result, 200)
 })
+
+// ... more routes
 
 export default app
 ```
@@ -268,112 +229,74 @@ export default app
 ```typescript
 import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
-import openapiApp from '@/src/server/openapi'
-import rpcApp from '@/src/server/routes'
+import app from '@/src/server/routes'  // ★ Single unified app
 
-// Create main app
-const app = new Hono()
+// Mount unified app
+const mainApp = new Hono().route('/', app)
 
-// ★ CRITICAL: Mount RPC app FIRST
-app.route('/', rpcApp)
-
-// ★ Mount OpenAPI app SECOND
-app.route('/', openapiApp)
-
-export const GET = handle(app)
-export const POST = handle(app)
-export const PATCH = handle(app)
-export const DELETE = handle(app)
+export const GET = handle(mainApp)
+export const POST = handle(mainApp)
+export const PATCH = handle(mainApp)
+export const DELETE = handle(mainApp)
 ```
-
-**Important:** The mounting order and route resolution:
-
-1. **Hono resolves routes in registration order**: When a request matches multiple handlers, Hono uses the first one registered
-2. **Mount RPC app first**: Business logic endpoints (like `POST /api/leagues`) are handled by RPC app
-3. **Mount OpenAPI app second**: OpenAPI-only routes (`/api/doc`, `/api/ui`) fall through from RPC app since they're not defined there
-4. **Avoid duplicate routes**: If both apps define the same route, the RPC handler will always be used. Keep API contracts identical (same payload schemas) between both apps
 
 ---
 
 ## Validation
 
-### Shared Base Schemas (src/schemas/)
+### OpenAPI Schemas (src/server/schemas/)
 
-Define base validation schemas with detailed error messages:
-
-```typescript
-import { z } from 'zod'
-
-const playerNameSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Player name is required')
-    .max(20, 'Player name must be 20 characters or less'),
-})
-
-export const createLeagueSchema = z.object({
-  name: z.string().min(1, 'League name is required').max(20, 'League name must be 20 characters or less'),
-  description: z.string().optional(),
-  players: z.union([
-    z.array(playerNameSchema).length(8),
-    z.array(playerNameSchema).length(16),
-  ]),
-})
-```
-
-### RPC Validation (src/server/routes/)
-
-Import and use base schemas directly:
-
-```typescript
-import { zValidator } from '@hono/zod-validator'
-import { createLeagueSchema } from '@/src/schemas/leagues'
-
-app.post('/', zValidator('json', createLeagueSchema), async (c) => {
-  // Validation happens automatically
-})
-```
-
-### OpenAPI Validation (src/server/openapi/schemas/)
-
-Extend base schemas with `.openapi()` metadata:
+Define schemas with OpenAPI metadata:
 
 ```typescript
 import { z } from '@hono/zod-openapi'
-import { createLeagueSchema } from '@/src/schemas/leagues'
 
-export const CreateLeagueRequestSchema = createLeagueSchema
-  .extend({
+/**
+ * Player role enum
+ */
+export const PlayerRoleSchema = z
+  .enum(['admin', 'scorer', 'viewer'])
+  .nullable()
+  .openapi({
+    description: 'Player role (null if no role assigned)',
+    example: 'admin',
+  })
+
+/**
+ * Create league request
+ */
+export const CreateLeagueRequestSchema = z
+  .object({
     name: z.string().min(1).max(20).openapi({
       example: '2025 Spring League',
       description: 'League name (1-20 characters)',
     }),
-    // Add OpenAPI metadata for other fields...
+    description: z.string().optional().openapi({
+      example: 'Every Friday evening',
+      description: 'League description (optional)',
+    }),
+    players: z
+      .union([
+        z.array(PlayerNameSchema).length(8),
+        z.array(PlayerNameSchema).length(16),
+      ])
+      .openapi({
+        description: 'List of players (must be exactly 8 or 16)',
+      }),
   })
   .openapi('CreateLeagueRequest')
 ```
 
-**Key Differences:**
-
-| Feature | Base Schemas | RPC Routes | OpenAPI Schemas |
-|---------|-------------|-----------|-----------------|
-| Location | `src/schemas/` | `src/server/routes/` | `src/server/openapi/schemas/` |
-| Import | `zod` | `@/src/schemas` | `@hono/zod-openapi` + `@/src/schemas` |
-| Error messages | User-friendly | Inherit from base | API-focused |
-| Examples | Not needed | Not needed | Required via `.openapi()` |
-| Descriptions | Not needed | Not needed | Required via `.openapi()` |
-| Usage | Define | Use as-is | Extend with `.openapi()` |
-
 ### Cross-validation Rules
 
-Use `.refine()` for complex validation that spans multiple fields:
+Use `.refine()` for complex validation:
 
 ```typescript
 .refine(
   (data) => data.playerNames.length === Number.parseInt(data.playerCount, 10),
   {
     message: 'playerNames length must match playerCount',
-    path: ['playerNames'],  // Error will be attached to this field
+    path: ['playerNames'],
   }
 )
 ```
@@ -424,11 +347,10 @@ export const authMiddleware = async (c: Context<AuthContext>, next: Next) => {
 ```typescript
 import type { AuthContext } from '../middleware/auth'
 
-const app = new Hono<AuthContext>()
+const app = new OpenAPIHono<AuthContext>()
 
-app.get('/', async (c) => {
+app.openapi(someRoute, async (c) => {
   const userId = c.get('userId')  // ✅ Type-safe: string
-  // ❌ DON'T: const user = c.get('user') - doesn't exist
 })
 ```
 
@@ -456,7 +378,7 @@ export async function deleteLeague(leagueId: string, userId: string) {
 }
 
 // ✅ Route layer (NO try-catch needed)
-app.delete('/:id', async (c) => {
+app.openapi(deleteLeagueRoute, async (c) => {
   const userId = c.get('userId')
   const leagueId = c.req.param('id')
   await leaguesService.deleteLeague(leagueId, userId)  // Middleware catches errors
@@ -485,146 +407,87 @@ export class ForbiddenError extends Error {
 }
 ```
 
-### Error Response Format
-
-```typescript
-{
-  "error": "NotFoundError",
-  "message": "League not found",
-  "statusCode": 404
-}
-```
-
 ---
 
 ## Common Mistakes
 
-### 1. ❌ Mixing RPC and OpenAPI Code
+### 1. ❌ Using Plain Hono Instead of OpenAPIHono
+
+**Problem:**
+
+```typescript
+// ❌ src/server/routes/leagues.ts
+import { Hono } from 'hono'  // WRONG!
+
+const app = new Hono<AuthContext>()
+
+app.get('/', async (c) => { ... })  // Missing OpenAPI metadata
+```
+
+**Solution:**
+
+```typescript
+// ✅ src/server/routes/leagues.ts
+import { OpenAPIHono, createRoute } from '@hono/zod-openapi'
+
+const app = new OpenAPIHono<AuthContext>()
+
+const getLeaguesRoute = createRoute({ ... })  // With OpenAPI metadata
+app.openapi(getLeaguesRoute, async (c) => { ... })
+```
+
+### 2. ❌ Exporting AppType After Doc Routes
 
 **Problem:**
 
 ```typescript
 // ❌ src/server/routes/index.ts
-import { OpenAPIHono } from '@hono/zod-openapi'  // WRONG!
-import { swaggerUI } from '@hono/swagger-ui'     // WRONG!
+const routes = app.route('/leagues', leaguesRoutes)
 
-const app = new OpenAPIHono().basePath('/api')   // WRONG!
+routes.doc('/doc', { ... })
+routes.get('/ui', swaggerUI({ ... }))
 
-app.doc('/doc', { ... })                         // WRONG!
-app.get('/ui', swaggerUI({ ... }))               // WRONG!
+export type AppType = typeof routes  // WRONG! Includes /doc and /ui
 ```
 
 **Solution:**
 
 ```typescript
 // ✅ src/server/routes/index.ts
-import { Hono } from 'hono'  // Use regular Hono
-
-const app = new Hono().basePath('/api')
-// NO OpenAPI code here!
-
-export default app
-```
-
-### 2. ❌ Wrong Zod Import in Base Schemas
-
-**Problem:**
-
-```typescript
-// ❌ src/schemas/leagues.ts
-import { z } from '@hono/zod-openapi'  // WRONG!
-```
-
-**Solution:**
-
-```typescript
-// ✅ src/schemas/leagues.ts
-import { z } from 'zod'  // Use standard zod (not OpenAPI version)
-```
-
-### 3. ❌ Exporting App Instead of Routes
-
-**Problem:**
-
-```typescript
-// ❌ src/server/routes/index.ts
-const app = new Hono().basePath('/api')
 const routes = app.route('/leagues', leaguesRoutes)
 
-export type AppType = typeof app  // WRONG! Loses basePath
-export default app                // WRONG!
+// Export AppType BEFORE adding doc routes
+export type AppType = typeof routes  // ✅ Only API endpoints
+
+routes.doc('/doc', { ... })
+routes.get('/ui', swaggerUI({ ... }))
 ```
 
-**Solution:**
-
-```typescript
-// ✅ src/server/routes/index.ts
-const app = new Hono().basePath('/api')
-const routes = app.route('/leagues', leaguesRoutes)
-
-export type AppType = typeof routes  // ✅ Includes basePath
-export default routes                // ✅ Export routes
-```
-
-### 4. ❌ Missing Validation in OpenAPI
+### 3. ❌ Wrong Zod Import in OpenAPI Schemas
 
 **Problem:**
 
 ```typescript
-// ❌ Allows any playerNames length, even if playerCount is 8
-export const CreateLeagueRequestSchema = z.object({
-  playerCount: z.enum(['8', '16']),
-  playerNames: z.array(z.string()),  // No length validation!
-})
+// ❌ src/server/schemas/leagues.ts
+import { z } from 'zod'  // WRONG! Missing .openapi() method
 ```
 
 **Solution:**
 
 ```typescript
-// ✅ Enforce playerNames.length === playerCount
-export const CreateLeagueRequestSchema = z
-  .object({
-    playerCount: z.enum(['8', '16']),
-    playerNames: z.array(z.string()),
-  })
-  .refine((data) => data.playerNames.length === Number.parseInt(data.playerCount, 10), {
-    message: 'playerNames length must match playerCount',
-    path: ['playerNames'],
-  })
+// ✅ src/server/schemas/leagues.ts
+import { z } from '@hono/zod-openapi'  // Has .openapi() method
 ```
 
-### 5. ❌ Wrong Route Mounting Order
-
-**Problem:**
-
-```typescript
-// ❌ app/api/[...route]/route.ts
-const app = new Hono()
-app.route('/', openapiApp)  // OpenAPI first
-app.route('/', rpcApp)      // RPC second
-
-// Result: Business endpoints (POST /api/leagues) are handled by OpenAPI app,
-// but the RPC client expects them from RPC app, breaking type safety
-```
-
-**Solution:**
-
-```typescript
-// ✅ app/api/[...route]/route.ts
-const app = new Hono()
-app.route('/', rpcApp)      // RPC first: handles business logic endpoints
-app.route('/', openapiApp)  // OpenAPI second: handles /doc, /ui (not in RPC)
-```
-
-### 6. ❌ Forgetting to Use AuthContext Type
+### 4. ❌ Forgetting to Use AuthContext Type
 
 **Problem:**
 
 ```typescript
 // ❌ Type error: 'userId' doesn't exist
-const app = new Hono()
+const app = new OpenAPIHono()
 
-app.get('/', async (c) => {
+app.openapi(someRoute, async (c) => {
   const userId = c.get('userId')  // ❌ Type error
 })
 ```
@@ -635,9 +498,9 @@ app.get('/', async (c) => {
 // ✅ Specify AuthContext
 import type { AuthContext } from '../middleware/auth'
 
-const app = new Hono<AuthContext>()
+const app = new OpenAPIHono<AuthContext>()
 
-app.get('/', async (c) => {
+app.openapi(someRoute, async (c) => {
   const userId = c.get('userId')  // ✅ Type-safe
 })
 ```
@@ -646,16 +509,12 @@ app.get('/', async (c) => {
 
 ## Checklist Before Committing
 
-- [ ] Base schemas in `src/schemas/` use `zod`, NOT `@hono/zod-openapi`
-- [ ] RPC routes import schemas from `@/src/schemas/`, NOT `../validators/`
-- [ ] RPC routes use `Hono`, NOT `OpenAPIHono`
-- [ ] OpenAPI schemas extend base schemas with `.openapi()` decorators
-- [ ] OpenAPI schemas use `@hono/zod-openapi` for decorators only
-- [ ] `src/server/routes/index.ts` exports `AppType` from `routes`, not `app`
-- [ ] No OpenAPI code (`app.doc()`, `swaggerUI()`) in `src/server/routes/`
-- [ ] Route mounting order: RPC first, OpenAPI second
+- [ ] All routes use `OpenAPIHono`, NOT plain `Hono`
+- [ ] All routes define OpenAPI metadata with `createRoute()`
+- [ ] All routes use `app.openapi()`, NOT `app.get/post/patch/delete()`
+- [ ] OpenAPI schemas use `@hono/zod-openapi` with `.openapi()` decorators
+- [ ] `src/server/routes/index.ts` exports `AppType` BEFORE doc routes
 - [ ] All routes use `AuthContext` type
-- [ ] Complex validation uses `.refine()`
 - [ ] Service layer throws custom errors, routes don't use try-catch
 - [ ] TypeScript compilation passes: `bunx tsc --noEmit`
 - [ ] Lint passes: `bun run lint:fix`
@@ -667,8 +526,8 @@ app.get('/', async (c) => {
 - [Hono RPC Documentation](https://hono.dev/guides/rpc)
 - [Hono Zod OpenAPI](https://hono.dev/examples/zod-openapi)
 - [Project CLAUDE.md](../CLAUDE.md)
-- [Issue #30 Implementation Tasks](./issue-30-openapi-implementation-tasks.md)
+- [Issue #45: RPC/OpenAPI Unification](https://github.com/your-repo/issues/45)
 
 ---
 
-**Last Updated:** 2025-01-15
+**Last Updated:** 2025-11-28
