@@ -20,29 +20,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = useState(() => createClient())
 
   useEffect(() => {
-    // 初回認証状態取得
-    const initAuth = async () => {
-      try {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser()
-
-        if (error) {
-          console.error('[Auth] Failed to get user:', error)
-        }
-        setUser(user)
-        setLoading(false)
-      } catch (error) {
-        console.error('[Auth] Unexpected error:', error)
-        setUser(null)
-        setLoading(false)
-      }
-    }
-
-    initAuth()
-
-    // 認証状態の変更を監視
+    // 認証状態の変更を監視します。
+    // リスナーがアタッチされると現在のセッションで一度呼び出されるため、
+    // これだけで初回読み込みと状態変更の両方に対応できます。
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {

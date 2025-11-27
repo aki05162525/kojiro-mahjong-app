@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/src/client/context/auth-context'
 
 interface UserMenuProps {
@@ -18,6 +19,7 @@ interface UserMenuProps {
 export function UserMenu({ userEmail }: UserMenuProps) {
   const router = useRouter()
   const { signOut } = useAuth()
+  const { toast } = useToast()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -33,7 +35,11 @@ export function UserMenu({ userEmail }: UserMenuProps) {
     if (error) {
       // エラー時はボタンを再度有効化してリトライ可能に
       setIsLoggingOut(false)
-      alert('ログアウトに失敗しました。もう一度お試しください。')
+      toast({
+        variant: 'destructive',
+        title: 'ログアウトに失敗しました',
+        description: 'もう一度お試しください。',
+      })
       return
     }
 
