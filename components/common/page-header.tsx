@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/src/server/supabase'
+import { getCurrentUser } from '@/src/server/auth'
 import { UserMenu } from './user-menu'
 
 /**
@@ -8,10 +8,14 @@ import { UserMenu } from './user-menu'
  * Atlassian Design System の Page Header パターンに準拠
  */
 export async function PageHeader() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+
+  try {
+    user = await getCurrentUser()
+  } catch (error) {
+    console.error('[PageHeader] Failed to fetch user:', error)
+    // エラー時は未ログイン状態として扱う
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[hsl(var(--ds-neutral-200))] bg-[hsl(var(--ds-neutral-0))] shadow-sm">

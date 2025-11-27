@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/src/client/supabase'
+import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/src/client/context/auth-context'
 
 interface UserMenuProps {
   userEmail: string
@@ -17,11 +18,32 @@ interface UserMenuProps {
  */
 export function UserMenu({ userEmail }: UserMenuProps) {
   const router = useRouter()
+  const { signOut } = useAuth()
+  const { toast } = useToast()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    if (isLoggingOut) {
+      return
+    }
+
+    setIsLoggingOut(true)
+
+    const { error } = await signOut()
+
+    if (error) {
+      // エラー時はボタンを再度有効化してリトライ可能に
+      setIsLoggingOut(false)
+      toast({
+        variant: 'destructive',
+        title: 'ログアウトに失敗しました',
+        description: 'もう一度お試しください。',
+      })
+      return
+    }
+
+    router.push('/login')
     router.refresh()
   }
 
@@ -33,9 +55,15 @@ export function UserMenu({ userEmail }: UserMenuProps) {
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">{userEmail}</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="gap-2"
+        >
           <LogOut className="h-4 w-4" />
-          ログアウト
+          {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
         </Button>
       </div>
 
@@ -66,9 +94,15 @@ export function UserMenu({ userEmail }: UserMenuProps) {
                   <User className="h-4 w-4" />
                   <span className="font-medium text-foreground">{userEmail}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleLogout} className="w-full gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="w-full gap-2"
+                >
                   <LogOut className="h-4 w-4" />
-                  ログアウト
+                  {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
                 </Button>
               </div>
             </nav>

@@ -9,13 +9,16 @@
 │   └── api/[...route]/route.ts   # Next.js APIハンドラー
 │
 ├── src/
+│   ├── schemas/                   # 共有Zodスキーマ（フロント・バック共通）
+│   ├── types/                     # 共有TypeScript型定義
+│   │
 │   ├── server/
 │   │   ├── routes/                # Hono RPCアプリ（フロントエンド用）
 │   │   ├── openapi/               # OpenAPIアプリ（ドキュメント用）
 │   │   ├── services/              # ビジネスロジック
 │   │   ├── repositories/          # データアクセス
 │   │   ├── middleware/            # 認証、エラーハンドリング
-│   │   └── validators/            # Zodバリデータ
+│   │   └── actions/               # Server Actions（SSR用データ取得）
 │   │
 │   └── client/
 │       ├── api.ts                 # Hono RPCクライアント
@@ -43,6 +46,21 @@ Route → Service → Repository → Database
 
 - マウント順序: RPC → OpenAPI
 - サービス層は両方で共有
+- バリデーションスキーマも共通化（`src/schemas/` から import）
+
+#### バリデーション層の構造
+
+```
+src/schemas/leagues.ts         # 基本Zodスキーマ（zod）
+    ↓ import
+src/server/routes/leagues.ts   # RPCルート（そのまま使用）
+    ↓ import & extend
+src/server/openapi/schemas/leagues.ts  # OpenAPI用（@hono/zod-openapi でデコレート）
+```
+
+- `src/schemas/` にベースの Zod スキーマを定義
+- RPC ルートはベーススキーマをそのまま使用
+- OpenAPI スキーマは `.openapi()` でメタデータを追加
 
 ### フロントエンド
 
@@ -72,18 +90,31 @@ app/
 ```
 components/
 ├── ui/                     # shadcnベースなどのPure UI primitives
-└── features/               # ドメインUI（例: leagues/LeagueList.tsx 等）を機能単位に配置
+├── features/               # ドメインUI（例: leagues/LeagueList.tsx 等）を機能単位に配置
+│   └── leagues/
+│       ├── leagues-container.tsx  # Container（React Query + ルーティング）
+│       ├── leagues-list.tsx       # Presentational（UI表示のみ）
+│       └── league-card.tsx        # 個別カードコンポーネント
+└── common/                 # 共通コンポーネント（page-header等）
 
 src/client/
 ├── api.ts                  # Hono RPCクライアントの初期化。app/から直接サーバ層をimportしないための境界
 ├── hooks/                  # React Query hooks（`useLeaguesQuery`等）。サーバ境界に近い層。
 └── supabase.ts             # Supabase browser client
+
+src/schemas/                # フロント・バック共有のZodスキーマ
+src/types/                  # フロント・バック共有のTypeScript型定義
 ```
 
 - `components/ui` はスタイル済みの汎用コンポーネント。ドメイン知識を持たないのでどの画面からも参照可能。
-- 機能単位のUIは `components/features/<domain>/` にまとめる。Hookレイヤーを通して取得したデータを受け取り、Propsでやり取りすることで再利用性を保つ。
+- 機能単位のUIは `components/features/<domain>/` にまとめる。Container/Presentationalパターンを使用：
+  - **Container**: React Query や状態管理、ルーティングを担当
+  - **Presentational**: Props で受け取ったデータを表示するのみ
+  - 小さなコンポーネントは適宜分割（例: `league-card.tsx`）
 - `lib/` には完全に副作用のないユーティリティ（フォーマッタ、計算）を置く。フロント専用の関数でもポータブルに保ち、`src/server` を import しない。
 - サーバとの通信や`React Query`のkeyは `src/client/hooks` 内に閉じ込めて `app/(dashboard)/**` からは `useLeaguesQuery()` 等を直接呼び出すだけにする。
+- **型定義の共有**: `src/types/` にフロント・バック共通の TypeScript 型を定義し、両方から import する。
+- **バリデーションの共有**: `src/schemas/` にベースの Zod スキーマを定義し、RPC/OpenAPI 両方から import・拡張する。
 
 - Supabase関連：ブラウザクライアントは `src/client/supabase.ts`、サーバサイドは `supabase/` 以下に分離。`app/(auth)` のフォームや`middleware.ts`からは`src/client`経由でのみ参照して境界を明示する。
 
