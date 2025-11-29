@@ -27,7 +27,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { useUpdateLeague, useUpdatePlayerName } from '@/src/client/hooks/useLeagues'
+import {
+  useUpdateLeague,
+  useUpdateLeagueStatus,
+  useUpdatePlayerName,
+} from '@/src/client/hooks/useLeagues'
 import { leagueStatusSchema, playerNameSchema } from '@/src/schemas/leagues'
 
 // ステータス選択肢を定数として定義
@@ -76,6 +80,7 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const updateLeague = useUpdateLeague()
+  const updateLeagueStatus = useUpdateLeagueStatus()
   const updatePlayerName = useUpdatePlayerName()
 
   // React Hook Form の初期化
@@ -100,9 +105,16 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
         data: {
           name: data.name,
           description: data.description,
-          // ステータスは別エンドポイントで更新する想定
         },
       })
+
+      // ステータスが変更されている場合は更新
+      if (data.status !== league.status) {
+        await updateLeagueStatus.mutateAsync({
+          leagueId: league.id,
+          status: data.status,
+        })
+      }
 
       // プレイヤー名が変更されているものを更新
       const playerUpdatePromises = data.players
