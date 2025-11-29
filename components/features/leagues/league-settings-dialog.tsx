@@ -24,10 +24,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { useUpdateLeague } from '@/src/client/hooks/useLeagues'
-import { leagueStatusSchema } from '@/src/schemas/leagues'
+import { useUpdateLeague, useUpdatePlayerName } from '@/src/client/hooks/useLeagues'
+import { leagueStatusSchema, playerNameSchema } from '@/src/schemas/leagues'
 
 // ステータス選択肢を定数として定義
 const STATUS_OPTIONS = [
@@ -40,6 +41,12 @@ const settingsFormSchema = z.object({
   name: z.string().min(1, 'リーグ名は必須です').max(20, 'リーグ名は20文字以内で入力してください'),
   description: z.string().optional(),
   status: leagueStatusSchema.exclude(['deleted']),
+  players: z.array(
+    z.object({
+      id: z.string(),
+      name: playerNameSchema.shape.name,
+    }),
+  ),
 })
 
 type SettingsFormValues = z.infer<typeof settingsFormSchema>
@@ -52,6 +59,11 @@ interface LeagueSettingsDialogProps {
     name: string
     description: string | null
     status: string
+    players: Array<{
+      id: string
+      name: string
+      role: string | null
+    }>
   }
 }
 
@@ -64,6 +76,7 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const updateLeague = useUpdateLeague()
+  const updatePlayerName = useUpdatePlayerName()
 
   // React Hook Form の初期化
   const form = useForm<SettingsFormValues>({
@@ -72,6 +85,7 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
       name: league.name,
       description: league.description ?? '',
       status: league.status as 'active' | 'completed',
+      players: league.players.map((p) => ({ id: p.id, name: p.name })),
     },
   })
 
@@ -80,6 +94,7 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
     setIsSubmitting(true)
 
     try {
+      // リーグ情報を更新
       await updateLeague.mutateAsync({
         leagueId: league.id,
         data: {
@@ -88,6 +103,23 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
           // ステータスは別エンドポイントで更新する想定
         },
       })
+
+      // プレイヤー名が変更されているものを更新
+      const playerUpdatePromises = data.players
+        .map((player, index) => {
+          const originalPlayer = league.players[index]
+          if (originalPlayer && player.name !== originalPlayer.name) {
+            return updatePlayerName.mutateAsync({
+              leagueId: league.id,
+              playerId: player.id,
+              name: player.name,
+            })
+          }
+          return null
+        })
+        .filter((promise) => promise !== null)
+
+      await Promise.all(playerUpdatePromises)
 
       toast({
         title: '更新完了',
@@ -110,10 +142,12 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>リーグ設定</DialogTitle>
-          <DialogDescription>リーグの名前、説明、ステータスを変更できます</DialogDescription>
+          <DialogDescription>
+            リーグの名前、説明、ステータス、プレイヤー名を変更できます
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -176,6 +210,34 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
                 </FormItem>
               )}
             />
+
+            {/* プレイヤー名編集 */}
+            <div className="space-y-2">
+              <FormLabel>プレイヤー名</FormLabel>
+              <ScrollArea className="h-[200px] rounded-md border p-4">
+                <div className="space-y-3">
+                  {form.watch('players').map((player, index) => (
+                    <FormField
+                      key={player.id}
+                      control={form.control}
+                      name={`players.${index}.name`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              placeholder={`プレイヤー ${index + 1}`}
+                              {...field}
+                              className="w-full"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
