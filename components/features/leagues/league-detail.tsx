@@ -2,21 +2,10 @@ import { ArrowLeft, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { getLeagueForUser } from '@/src/server/actions/leagues'
 
 interface LeagueDetailProps {
-  league: {
-    id: string
-    name: string
-    description: string | null
-    status: string
-    createdAt: string
-    updatedAt: string
-    players: Array<{
-      id: string
-      name: string
-      role: string | null
-    }>
-  }
+  league: Awaited<ReturnType<typeof getLeagueForUser>>
   onSettingsClick: () => void
 }
 

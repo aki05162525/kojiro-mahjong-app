@@ -3,24 +3,12 @@
 import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLeague } from '@/src/client/hooks/useLeagues'
+import type { getLeagueForUser } from '@/src/server/actions/leagues'
 import { LeagueDetail } from './league-detail'
 import { LeagueSettingsDialog } from './league-settings-dialog'
 
-interface LeagueDetailContainerProps {
-  initialData: {
-    id: string
-    name: string
-    description: string | null
-    status: string
-    createdAt: string
-    updatedAt: string
-    players: Array<{
-      id: string
-      name: string
-      role: string | null
-      createdAt: string
-    }>
-  }
+type LeagueDetailContainerProps = {
+  initialData: Awaited<ReturnType<typeof getLeagueForUser>>
 }
 
 /**

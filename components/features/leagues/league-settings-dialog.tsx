@@ -2,8 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useFieldArray, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,7 +31,7 @@ import {
   useUpdateLeagueStatus,
   useUpdatePlayerName,
 } from '@/src/client/hooks/useLeagues'
-import { leagueStatusSchema, playerNameSchema } from '@/src/schemas/leagues'
+import { playerNameSchema } from '@/src/schemas/leagues'
 
 // ステータス選択肢を定数として定義
 const STATUS_OPTIONS = [
@@ -44,7 +43,8 @@ const STATUS_OPTIONS = [
 const settingsFormSchema = z.object({
   name: z.string().min(1, 'リーグ名は必須です').max(20, 'リーグ名は20文字以内で入力してください'),
   description: z.string().optional(),
-  status: leagueStatusSchema.exclude(['deleted']),
+  // deleted は UI から選択させない
+  status: z.enum(['active', 'completed']),
   players: z.array(
     z.object({
       id: z.string(),
@@ -78,7 +78,6 @@ interface LeagueSettingsDialogProps {
 export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSettingsDialogProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const updateLeague = useUpdateLeague()
   const updateLeagueStatus = useUpdateLeagueStatus()
   const updatePlayerName = useUpdatePlayerName()
@@ -93,33 +92,38 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
       players: league.players.map((p) => ({ id: p.id, name: p.name })),
     },
   })
+  const { fields: playerFields } = useFieldArray({
+    control: form.control,
+    name: 'players',
+  })
 
   // フォーム送信処理
   const onSubmit = async (data: SettingsFormValues) => {
-    setIsSubmitting(true)
-
     try {
-      // リーグ情報を更新
-      await updateLeague.mutateAsync({
-        leagueId: league.id,
-        data: {
-          name: data.name,
-          description: data.description,
-        },
-      })
+      const updatePromises: Promise<unknown>[] = []
 
-      // ステータスが変更されている場合は更新
-      if (data.status !== league.status) {
-        await updateLeagueStatus.mutateAsync({
+      updatePromises.push(
+        updateLeague.mutateAsync({
           leagueId: league.id,
-          status: data.status,
-        })
+          data: {
+            name: data.name,
+            description: data.description,
+          },
+        }),
+      )
+
+      if (data.status !== league.status) {
+        updatePromises.push(
+          updateLeagueStatus.mutateAsync({
+            leagueId: league.id,
+            status: data.status,
+          }),
+        )
       }
 
-      // プレイヤー名が変更されているものを更新
       const playerUpdatePromises = data.players
-        .map((player, index) => {
-          const originalPlayer = league.players[index]
+        .map((player) => {
+          const originalPlayer = league.players.find((p) => p.id === player.id)
           if (originalPlayer && player.name !== originalPlayer.name) {
             return updatePlayerName.mutateAsync({
               leagueId: league.id,
@@ -129,9 +133,9 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
           }
           return null
         })
-        .filter((promise) => promise !== null)
+        .filter((promise): promise is NonNullable<typeof promise> => promise !== null)
 
-      await Promise.all(playerUpdatePromises)
+      await Promise.all([...updatePromises, ...playerUpdatePromises])
 
       toast({
         title: '更新完了',
@@ -147,8 +151,6 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
         title: '更新失敗',
         description: '更新に失敗しました。もう一度お試しください。',
       })
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -202,7 +204,7 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
                 <FormItem>
                   <FormLabel>ステータス</FormLabel>
                   <FormControl>
-                    <RadioGroup onValueChange={field.onChange} defaultValue={field.value}>
+                    <RadioGroup onValueChange={field.onChange} value={field.value}>
                       <div className="space-y-2">
                         {STATUS_OPTIONS.map((option) => (
                           <div key={option.value} className="flex items-center space-x-2">
@@ -228,7 +230,7 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
               <FormLabel>プレイヤー名</FormLabel>
               <ScrollArea className="h-[200px] rounded-md border p-4">
                 <div className="space-y-3">
-                  {form.watch('players').map((player, index) => (
+                  {playerFields.map((player, index) => (
                     <FormField
                       key={player.id}
                       control={form.control}
@@ -255,8 +257,8 @@ export function LeagueSettingsDialog({ open, onOpenChange, league }: LeagueSetti
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 キャンセル
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? '更新中...' : '更新'}
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? '更新中...' : '更新'}
               </Button>
             </DialogFooter>
           </form>

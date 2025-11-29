@@ -2,9 +2,9 @@ import { LeagueDetailContainer } from '@/components/features/leagues/league-deta
 import { getLeagueForUser } from '@/src/server/actions/leagues'
 
 interface LeagueDetailPageProps {
-  params: Promise<{
+  params: {
     id: string
-  }>
+  }
 }
 
 /**
@@ -12,7 +12,7 @@ interface LeagueDetailPageProps {
  * サーバー側でデータ取得してクライアントに渡す
  */
 export default async function LeagueDetailPage({ params }: LeagueDetailPageProps) {
-  const { id } = await params
+  const { id } = params
   const initialData = await getLeagueForUser(id)
 
   return <LeagueDetailContainer initialData={initialData} />
