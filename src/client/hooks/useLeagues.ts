@@ -42,11 +42,16 @@ export const useLeagues = ({ initialData, staleTime }: UseLeaguesOptions = {}) =
   })
 }
 
+interface UseLeagueOptions {
+  initialData?: Awaited<ReturnType<(typeof apiClient.api.leagues)[':id']['$get']>>['data']
+  staleTime?: number
+}
+
 /**
  * リーグ詳細を取得
  * @param leagueId - リーグID
  */
-export const useLeague = (leagueId: string) => {
+export const useLeague = (leagueId: string, { initialData, staleTime }: UseLeagueOptions = {}) => {
   return useQuery({
     queryKey: ['leagues', leagueId],
     queryFn: async () => {
@@ -58,6 +63,8 @@ export const useLeague = (leagueId: string) => {
       }
       return await res.json()
     },
+    initialData,
+    staleTime,
     // リーグIDがない場合はクエリを無効化
     enabled: !!leagueId,
   })

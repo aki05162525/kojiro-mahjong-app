@@ -241,6 +241,47 @@ src/server/actions/
 - **Container**: React Query でキャッシュ管理、ルーティング
 - **Presentational**: Props で受け取った値を表示のみ
 
+### Next.js App Router の params 扱い
+
+- **App Router のページ params は素のオブジェクト**
+  - `Promise` 扱いしたり `await params` しないこと
+  - Next.js 15 以降、params は同期的にアクセス可能
+
+```typescript
+// ❌ Bad - params を Promise として扱う
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+}
+
+// ✅ Good - params は素のオブジェクト
+export default async function Page({ params }: { params: { id: string } }) {
+  const { id } = params
+}
+```
+
+### 共有データ型の参照
+
+- **サーバー側の戻り値型を参照する**
+  - コンポーネントごとに同じ形を再定義しない
+  - `Awaited<ReturnType<typeof functionName>>` を使用
+
+```typescript
+// ❌ Bad - コンポーネントごとに型を再定義
+interface LeagueDetailContainerProps {
+  initialData: {
+    id: string
+    name: string
+    description: string | null
+    // ... 全フィールドを手動で定義
+  }
+}
+
+// ✅ Good - Server Action の戻り値型を参照
+interface LeagueDetailContainerProps {
+  initialData: Awaited<ReturnType<typeof getLeagueForUser>>
+}
+```
+
 ---
 
 ## スキーマとバリデーションの管理
@@ -376,6 +417,16 @@ export function getDatabaseUrl(): string {
 **`finally` ブロックで状態をリセットする**:
 - 成功時・失敗時の両方で確実にローディング状態をリセット
 - Next.js の `router.push()` などのナビゲーション後も適切に状態管理
+
+---
+
+## フロントエンド実装メモ（リーグ設定関連）
+
+- App Router の `params` はオブジェクト（`Promise` ではない）。`await params` しない。
+- サーバーアクションの戻り値型を再利用する（例: `Awaited<ReturnType<typeof getLeagueForUser>>`）。型をコンポーネントごとに再定義しない。
+- React Hook Form の配列は `useFieldArray` で扱い、`watch` で全体再レンダリングを誘発しない。
+- 送信中フラグは `form.formState.isSubmitting` を使い、独自 state を持たない。
+- リーグ設定更新ではステータスも必ず `useUpdateLeagueStatus` で永続化する（名前・説明のみで終わらせない）。
 
 ```typescript
 // ❌ Bad - 成功時に loading がリセットされない
