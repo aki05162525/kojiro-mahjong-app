@@ -20,7 +20,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { useCreateLeague } from '@/src/client/hooks/useLeagues'
-import { type CreateLeagueInput, createLeagueSchema } from '@/src/schemas/leagues'
+import { type CreateLeagueInput, createLeagueSchema, playerNameSchema } from '@/src/schemas/leagues'
+
+// プレイヤー人数の選択肢
+const PLAYER_COUNT_OPTIONS = [8, 16] as const
 
 interface CreateLeagueDialogProps {
   open: boolean
@@ -51,22 +54,20 @@ export function CreateLeagueDialog({ open, onOpenChange }: CreateLeagueDialogPro
   })
 
   // プレイヤー人数の選択肢（8人 or 16人）
-  const [requiredPlayerCount, setRequiredPlayerCount] = useState<8 | 16>(8)
+  const [requiredPlayerCount, setRequiredPlayerCount] =
+    useState<(typeof PLAYER_COUNT_OPTIONS)[number]>(8)
 
   // プレイヤー追加処理
   const handleAddPlayer = () => {
-    const name = playerNameInput.trim()
+    // Zod スキーマでバリデーション
+    const validationResult = playerNameSchema.shape.name.safeParse(playerNameInput.trim())
 
-    // 入力チェック
-    if (!name) {
-      setPlayerNameError('プレイヤー名を入力してください')
+    if (!validationResult.success) {
+      setPlayerNameError(validationResult.error.issues[0].message)
       return
     }
 
-    if (name.length > 20) {
-      setPlayerNameError('プレイヤー名は20文字以内で入力してください')
-      return
-    }
+    const name = validationResult.data
 
     // 重複チェック（リーグ内で一意）
     if (fields.some((field) => field.name === name)) {
@@ -158,20 +159,18 @@ export function CreateLeagueDialog({ open, onOpenChange }: CreateLeagueDialogPro
               <FormLabel>プレイヤー人数</FormLabel>
               <RadioGroup
                 value={requiredPlayerCount.toString()}
-                onValueChange={(value) => setRequiredPlayerCount(Number(value) as 8 | 16)}
+                onValueChange={(value) =>
+                  setRequiredPlayerCount(Number(value) as (typeof PLAYER_COUNT_OPTIONS)[number])
+                }
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="8" id="player-count-8" />
-                  <label htmlFor="player-count-8" className="cursor-pointer">
-                    8人
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="16" id="player-count-16" />
-                  <label htmlFor="player-count-16" className="cursor-pointer">
-                    16人
-                  </label>
-                </div>
+                {PLAYER_COUNT_OPTIONS.map((count) => (
+                  <div key={count} className="flex items-center space-x-2">
+                    <RadioGroupItem value={count.toString()} id={`player-count-${count}`} />
+                    <label htmlFor={`player-count-${count}`} className="cursor-pointer">
+                      {count}人
+                    </label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
 
