@@ -1,9 +1,10 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLeagues } from '@/src/client/hooks/useLeagues'
 import type { LeaguesResponse } from '@/src/types/league'
+import { CreateLeagueDialog } from './create-league-dialog'
 import { LeaguesList } from './leagues-list'
 
 interface LeaguesContainerProps {
@@ -15,7 +16,7 @@ interface LeaguesContainerProps {
  * データ取得とロジックを担当
  */
 export function LeaguesContainer({ initialData }: LeaguesContainerProps) {
-  const router = useRouter()
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   // React Query で初期データを使いつつ、バックグラウンドで再検証
   const { data, isLoading, error } = useLeagues({
@@ -25,7 +26,7 @@ export function LeaguesContainer({ initialData }: LeaguesContainerProps) {
   const leaguesData = data ?? initialData
 
   const handleCreateClick = () => {
-    router.push('/leagues/create')
+    setIsDialogOpen(true)
   }
 
   // ローディング中（初回は initialData があるので表示されない）
@@ -51,5 +52,10 @@ export function LeaguesContainer({ initialData }: LeaguesContainerProps) {
     )
   }
 
-  return <LeaguesList leagues={leaguesData.leagues} onCreateClick={handleCreateClick} />
+  return (
+    <>
+      <LeaguesList leagues={leaguesData.leagues} onCreateClick={handleCreateClick} />
+      <CreateLeagueDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+    </>
+  )
 }
