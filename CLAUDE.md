@@ -259,6 +259,36 @@ src/server/actions/
 - `.openapi()` でメタデータ追加
 - `.extend()` で拡張可能
 
+### Zod スキーマの一元化
+
+UI コンポーネント内でバリデーションロジックを直接記述せず、`src/schemas/` で定義した Zod スキーマを使用する:
+
+```typescript
+// ❌ Bad - コンポーネント内に重複したバリデーション
+if (!name) {
+  setError('名前は必須です')
+  return
+}
+if (name.length > 20) {
+  setError('名前は20文字以内で入力してください')
+  return
+}
+
+// ✅ Good - Zod スキーマでバリデーション
+import { playerNameSchema } from '@/src/schemas/leagues'
+
+const validationResult = playerNameSchema.shape.name.safeParse(input.trim())
+if (!validationResult.success) {
+  setError(validationResult.error.issues[0].message)
+  return
+}
+```
+
+**メリット**:
+- バリデーションルールとエラーメッセージがスキーマ定義に集約される
+- フロントエンド・バックエンドで同じルールを共有できる
+- 将来的な変更時、修正箇所が一箇所に限定される
+
 例:
 
 ```typescript
@@ -404,6 +434,38 @@ const onSubmit = async (data) => {
 
 - 必要なコンポーネントを都度追加: `bunx shadcn@latest add <component>`
 - 事前に全コンポーネントをインストールしない
+- **`components/ui/` 内のコンポーネントには `'use client'` を追加しない**
+  - これらは shared components として Server/Client 両方から使えるべき
+  - `'use client'` は実際に使う側のコンポーネント（例: `create-league-dialog.tsx`）で宣言する
+
+### UI 定義の定数化
+
+**選択肢の動的生成**:
+
+ハードコードされた選択肢は定数配列として定義し、`.map()` で動的生成する:
+
+```tsx
+// ❌ Bad - ハードコード
+<RadioGroupItem value="8" id="player-count-8" />
+<label htmlFor="player-count-8">8人</label>
+<RadioGroupItem value="16" id="player-count-16" />
+<label htmlFor="player-count-16">16人</label>
+
+// ✅ Good - 定数 + map
+const PLAYER_COUNT_OPTIONS = [8, 16] as const
+
+{PLAYER_COUNT_OPTIONS.map((count) => (
+  <div key={count}>
+    <RadioGroupItem value={count.toString()} id={`player-count-${count}`} />
+    <label htmlFor={`player-count-${count}`}>{count}人</label>
+  </div>
+))}
+```
+
+**メリット**:
+- 選択肢の追加・変更が配列の修正のみで完結
+- 修正箇所が一箇所に限定される
+- タイポやコピペミスを防げる
 
 ### デザイン原則
 
