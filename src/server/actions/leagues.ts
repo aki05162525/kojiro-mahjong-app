@@ -59,7 +59,6 @@ export async function getLeagueForUser(leagueId: string) {
       players: league.players.map((player) => ({
         ...player,
         createdAt: player.createdAt.toISOString(),
-        updatedAt: player.updatedAt.toISOString(),
       })),
     }
   } catch (error) {

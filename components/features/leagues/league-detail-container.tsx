@@ -19,7 +19,6 @@ interface LeagueDetailContainerProps {
       name: string
       role: string | null
       createdAt: string
-      updatedAt: string
     }>
   }
 }
@@ -29,7 +28,7 @@ interface LeagueDetailContainerProps {
  * データ取得とロジックを担当
  */
 export function LeagueDetailContainer({ initialData }: LeagueDetailContainerProps) {
-  const [_isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
 
   // React Query で初期データを使いつつ、バックグラウンドで再検証
   const { data, isLoading, error } = useLeague(initialData.id, {
