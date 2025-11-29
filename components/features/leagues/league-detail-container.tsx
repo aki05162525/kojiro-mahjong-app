@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLeague } from '@/src/client/hooks/useLeagues'
 import { LeagueDetail } from './league-detail'
+import { LeagueSettingsDialog } from './league-settings-dialog'
 
 interface LeagueDetailContainerProps {
   initialData: {
@@ -67,7 +68,11 @@ export function LeagueDetailContainer({ initialData }: LeagueDetailContainerProp
   return (
     <>
       <LeagueDetail league={leagueData} onSettingsClick={handleSettingsClick} />
-      {/* TODO: 設定ダイアログを追加 */}
+      <LeagueSettingsDialog
+        open={isSettingsDialogOpen}
+        onOpenChange={setIsSettingsDialogOpen}
+        league={leagueData}
+      />
     </>
   )
 }
