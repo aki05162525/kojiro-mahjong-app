@@ -8,4 +8,5 @@ pre-commit:
 pre-push:
   commands:
     biome-check:
-      run: bun run lint
+      glob: "**/*.{ts,tsx,js,jsx,cts,mts,cjs,mjs}"
+      run: bunx biome check --no-errors-on-unmatched {push_files}
