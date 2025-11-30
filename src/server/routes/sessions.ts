@@ -71,7 +71,7 @@ const createSessionRoute = createRoute({
 
 app.openapi(createSessionRoute, async (c) => {
   const userId = c.get('userId')
-  const leagueId = c.req.param('leagueId')
+  const { leagueId } = c.req.valid('param')
   const session = await sessionsService.createSession(leagueId, userId)
   return c.json(session, 201)
 })
@@ -118,7 +118,7 @@ const getSessionsRoute = createRoute({
 
 app.openapi(getSessionsRoute, async (c) => {
   const userId = c.get('userId')
-  const leagueId = c.req.param('leagueId')
+  const { leagueId } = c.req.valid('param')
   const sessions = await sessionsService.getSessionsByLeagueId(leagueId, userId)
   return c.json({ sessions }, 200)
 })

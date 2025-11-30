@@ -43,6 +43,15 @@
   - [x] Repositories: DB アクセス層 (`src/server/repositories/players.ts`)
   - [x] OpenAPI Schemas: players用スキーマ (`src/server/schemas/players.ts`)
 
+- [x] **スコア入力・計算機能実装（100%完了）**
+  - [x] Routes (RPC): スコア入力/取得/修正
+  - [x] Routes (OpenAPI): Swagger UI 対応
+  - [x] Services: 点数計算ロジック（scorePt, rank, rankPt, totalPt）
+  - [x] Services: 同点処理（座順優先）、合計点バリデーション（100,000点）
+  - [x] Repositories: DB アクセス層
+  - [x] Validators: Zod スキーマ
+  - [x] OpenAPI Schemas
+
 ### フロントエンド統合
 - [x] **React Query + Hono RPC 統合（100%完了）**
   - [x] RPC クライアント初期化（`src/client/api.ts`）
@@ -68,14 +77,10 @@
 ## 現在進行中
 
 ### バックエンド機能実装
-- [ ] **スコア入力・計算機能実装（0%完了）**
-  - [ ] Routes (RPC): スコア入力/取得/修正
-  - [ ] Routes (OpenAPI): Swagger UI 対応
-  - [ ] Services: 点数計算ロジック（scorePt, rank, rankPt, totalPt）
-  - [ ] Services: 同点処理（座順優先）、合計点バリデーション（100,000点）
-  - [ ] Repositories: DB アクセス層
-  - [ ] Validators: Zod スキーマ
-  - [ ] OpenAPI Schemas
+- [ ] **ランキング表示機能実装（0%完了）**
+  - [ ] Routes (RPC): リーグランキング取得、個人成績取得
+  - [ ] Services: 累積ポイント計算、ソートロジック
+  - [ ] Repositories: 集計クエリ
 
 ### フロントエンド UI 実装
 - [ ] **スコア入力画面**
@@ -84,7 +89,7 @@
   - [ ] 合計点バリデーション
 
 ### React Query フック作成
-- [ ] useScores (スコア入力用)
+- [x] useScores (スコア入力用)
 
 ## TODO (優先度順)
 
@@ -96,11 +101,6 @@
   - [ ] Repositories: DB アクセス層
   - [ ] Validators: Zod スキーマ
   - [ ] OpenAPI Schemas
-
-- [ ] **ランキング表示機能実装（0%完了）**
-  - [ ] Routes (RPC): リーグランキング取得、個人成績取得
-  - [ ] Services: 累積ポイント計算、ソートロジック
-  - [ ] Repositories: 集計クエリ
 
 - [ ] **ユーザー管理機能実装（0%完了）**
   - [ ] Routes (RPC/OpenAPI): ユーザー一覧/詳細/作成/更新

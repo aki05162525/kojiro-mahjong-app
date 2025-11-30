@@ -1,0 +1,203 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useToast } from '@/hooks/use-toast'
+import { useUpdateScores } from '@/src/client/hooks/useScores'
+import { TOTAL_SCORE } from '@/src/constants/mahjong'
+import type { SessionScore } from '@/src/types/session'
+
+interface ScoreInputDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  leagueId: string
+  tableId: string
+  tableType: 'first' | 'upper' | 'lower'
+  scores: SessionScore[]
+}
+
+const WIND_LABELS: Record<string, string> = {
+  east: '東',
+  south: '南',
+  west: '西',
+  north: '北',
+}
+
+const WIND_ORDER: Record<string, number> = {
+  east: 0,
+  south: 1,
+  west: 2,
+  north: 3,
+}
+
+export function ScoreInputDialog({
+  open,
+  onOpenChange,
+  leagueId,
+  tableId,
+  scores,
+}: ScoreInputDialogProps) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const updateScores = useUpdateScores()
+
+  // 風順にソート
+  const sortedScores = useMemo(
+    () => [...scores].sort((a, b) => WIND_ORDER[a.wind] - WIND_ORDER[b.wind]),
+    [scores],
+  )
+
+  // フォーム状態（scoreId → finalScore のマップ）
+  const [inputScores, setInputScores] = useState<Record<string, string>>({})
+
+  // scoresが変更されたときに状態をリセット（別のテーブルに切り替わった場合など）
+  useEffect(() => {
+    setInputScores(
+      Object.fromEntries(
+        sortedScores.map((s) => [
+          s.id,
+          s.finalScore !== null ? (s.finalScore / 100).toString() : '',
+        ]),
+      ),
+    )
+  }, [sortedScores])
+
+  // 合計点チェック（入力値を100倍して実際の点数に変換）
+  const totalScore = useMemo(() => {
+    return Object.values(inputScores).reduce((sum, val) => {
+      const num = Number.parseInt(val, 10)
+      return sum + (Number.isNaN(num) ? 0 : num * 100)
+    }, 0)
+  }, [inputScores])
+
+  const isValid = totalScore === TOTAL_SCORE
+  const remainingScore = TOTAL_SCORE - totalScore
+
+  const handleSubmit = async () => {
+    if (!isValid) {
+      toast({
+        variant: 'destructive',
+        title: '入力エラー',
+        description: `合計点数は${TOTAL_SCORE.toLocaleString()}点である必要があります`,
+      })
+      return
+    }
+
+    try {
+      await updateScores.mutateAsync({
+        leagueId,
+        tableId,
+        scores: {
+          scores: sortedScores.map((s) => ({
+            scoreId: s.id,
+            finalScore: Number.parseInt(inputScores[s.id], 10) * 100, // 100倍して実際の点数に変換
+          })),
+        },
+      })
+
+      toast({
+        title: 'スコアを更新しました',
+        description: 'ポイントが自動計算されました',
+      })
+
+      onOpenChange(false)
+      router.refresh()
+    } catch (error) {
+      console.error('Failed to update scores:', error)
+      toast({
+        variant: 'destructive',
+        title: 'スコア更新に失敗しました',
+        description: error instanceof Error ? error.message : 'もう一度お試しください',
+      })
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>スコア入力</DialogTitle>
+          <DialogDescription>
+            4人分の最終得点を入力してください（百の位まで）。合計は1,000（=
+            {TOTAL_SCORE.toLocaleString()}点）である必要があります。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {sortedScores.map((score) => (
+            <div key={score.id} className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                {WIND_LABELS[score.wind]} {score.player.name}
+              </Label>
+              <Input
+                type="number"
+                className="col-span-2"
+                value={inputScores[score.id]}
+                onChange={(e) =>
+                  setInputScores((currentScores) => ({
+                    ...currentScores,
+                    [score.id]: e.target.value,
+                  }))
+                }
+                placeholder="250"
+                min="0"
+                max="2000"
+                step="1"
+              />
+              <span className="text-sm text-muted-foreground">00点</span>
+            </div>
+          ))}
+
+          <div className="flex items-center justify-between border-t pt-4">
+            <span className="font-medium">合計:</span>
+            <div className="text-right">
+              <div className={`font-bold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
+                {totalScore.toLocaleString()}点
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {remainingScore === 0 ? (
+                  <span className="text-green-600">✓ 合計{TOTAL_SCORE.toLocaleString()}点</span>
+                ) : remainingScore > 0 ? (
+                  <span>残り: {remainingScore.toLocaleString()}点</span>
+                ) : (
+                  <span className="text-red-600">
+                    {Math.abs(remainingScore).toLocaleString()}点超過
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={updateScores.isPending}
+          >
+            キャンセル
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!isValid || updateScores.isPending}
+          >
+            {updateScores.isPending ? '保存中...' : '保存'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

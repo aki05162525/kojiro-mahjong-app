@@ -7,5 +7,6 @@ const mainApp = new Hono().route('/', app)
 
 export const GET = handle(mainApp)
 export const POST = handle(mainApp)
+export const PUT = handle(mainApp)
 export const PATCH = handle(mainApp)
 export const DELETE = handle(mainApp)
