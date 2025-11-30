@@ -22,14 +22,20 @@ export const useUpdateScores = () => {
       })
 
       if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to update scores')
+        // エラーレスポンスはJSONボディを持つ
+        try {
+          const error = await res.json()
+          throw new Error(error.error || 'Failed to update scores')
+        } catch {
+          throw new Error('Failed to update scores')
+        }
       }
+      // 204 No Content は正常終了（ボディなし）
     },
     onSuccess: () => {
       // セッション一覧を再取得（スコアが更新されたため）
+      // 全てのリーグとセッションのキャッシュを無効化
       queryClient.invalidateQueries({ queryKey: ['leagues'] })
-      queryClient.invalidateQueries({ queryKey: ['sessions'] })
     },
   })
 }
