@@ -4,9 +4,9 @@ import { getLeagueForUser } from '@/src/server/actions/leagues'
 import { getCurrentUser } from '@/src/server/auth'
 
 interface LeagueDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 /**
@@ -14,7 +14,7 @@ interface LeagueDetailPageProps {
  * サーバー側でデータ取得してクライアントに渡す
  */
 export default async function LeagueDetailPage({ params }: LeagueDetailPageProps) {
-  const { id } = params
+  const { id } = await params
   const initialData = await getLeagueForUser(id)
 
   // 現在のユーザー情報を取得

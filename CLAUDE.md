@@ -243,19 +243,19 @@ src/server/actions/
 
 ### Next.js App Router の params 扱い
 
-- **App Router のページ params は素のオブジェクト**
-  - `Promise` 扱いしたり `await params` しないこと
-  - Next.js 15 以降、params は同期的にアクセス可能
+- **App Router のページ params は Promise**
+  - Next.js 15 以降、params は非同期になった
+  - 使用前に必ず `await` する必要がある
 
 ```typescript
-// ❌ Bad - params を Promise として扱う
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+// ❌ Bad - params を await せずに使用
+export default async function Page({ params }: { params: { id: string } }) {
+  const { id } = params  // エラー: params should be awaited
 }
 
-// ✅ Good - params は素のオブジェクト
-export default async function Page({ params }: { params: { id: string } }) {
-  const { id } = params
+// ✅ Good - params を Promise として扱い await する
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
 }
 ```
 
@@ -492,7 +492,7 @@ export default async function Page({ params }: PageProps) {
 
 ## フロントエンド実装メモ（リーグ設定関連）
 
-- App Router の `params` はオブジェクト（`Promise` ではない）。`await params` しない。
+- App Router の `params` は `Promise`。使用前に必ず `await params` する。
 - サーバーアクションの戻り値型を再利用する（例: `Awaited<ReturnType<typeof getLeagueForUser>>`）。型をコンポーネントごとに再定義しない。
 - React Hook Form の配列は `useFieldArray` で扱い、`watch` で全体再レンダリングを誘発しない。
 - 送信中フラグは `form.formState.isSubmitting` を使い、独自 state を持たない。
