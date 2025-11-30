@@ -21,6 +21,12 @@ export class ForbiddenError extends HTTPException {
   }
 }
 
+export class BadRequestError extends HTTPException {
+  constructor(message = '不正なリクエストです') {
+    super(400, { message })
+  }
+}
+
 // グローバルエラーハンドラー
 export const errorHandler = (err: Error, c: Context) => {
   console.error('Error occurred:', err)

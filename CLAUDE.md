@@ -243,19 +243,19 @@ src/server/actions/
 
 ### Next.js App Router の params 扱い
 
-- **App Router のページ params は素のオブジェクト**
-  - `Promise` 扱いしたり `await params` しないこと
-  - Next.js 15 以降、params は同期的にアクセス可能
+- **App Router のページ params は Promise**
+  - Next.js 15 以降、params は非同期になった
+  - 使用前に必ず `await` する必要がある
 
 ```typescript
-// ❌ Bad - params を Promise として扱う
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+// ❌ Bad - params を await せずに使用
+export default async function Page({ params }: { params: { id: string } }) {
+  const { id } = params  // エラー: params should be awaited
 }
 
-// ✅ Good - params は素のオブジェクト
-export default async function Page({ params }: { params: { id: string } }) {
-  const { id } = params
+// ✅ Good - params を Promise として扱い await する
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
 }
 ```
 
@@ -418,11 +418,81 @@ export function getDatabaseUrl(): string {
 - 成功時・失敗時の両方で確実にローディング状態をリセット
 - Next.js の `router.push()` などのナビゲーション後も適切に状態管理
 
+### バリデーションエラーは適切なHTTPステータスコードで返す
+
+```typescript
+// ❌ Bad - 全てのエラーを一律に処理
+throw new Error('バリデーションエラー')  // グローバルハンドラーで500エラーになる
+
+// ✅ Good - HTTPExceptionを使って適切なステータスコードを返す
+import { BadRequestError } from '@/src/server/middleware/error-handler'
+
+if (players.length !== 16) {
+  throw new BadRequestError('第1節の作成にはプレイヤーが16名必要です')  // 400エラー
+}
+```
+
+**OpenAPI routeでエラーレスポンスを明示的に定義**:
+
+```typescript
+// ルート定義でバリデーションエラーのレスポンスを追加
+responses: {
+  201: { /* 成功レスポンス */ },
+  400: BadRequestResponse,  // バリデーションエラー用
+  401: UnauthorizedResponse,
+  403: ForbiddenResponse,
+  404: NotFoundResponse,
+}
+```
+
+**メリット**:
+- クライアントが適切なエラーハンドリングを行える
+- Swagger UIでエラーレスポンスがドキュメント化される
+- サーバーエラー（500）とクライアントエラー（400）が明確に区別される
+
+---
+
+## セキュリティと認可
+
+### 現在のユーザーで権限チェックを行う
+
+```typescript
+// ❌ Bad - 任意の管理者が存在するかをチェック
+const isAdmin = league.players.some(
+  (player) => player.userId && player.role === 'admin'
+)
+// → 一般メンバーにも管理者機能が表示されてしまう
+
+// ✅ Good - 現在ログインしているユーザーが管理者かをチェック
+const isAdmin = league.players.some(
+  (player) => player.userId === currentUserId && player.role === 'admin'
+)
+```
+
+**Server Componentで認証情報を取得してpropsで渡す**:
+
+```typescript
+// app/xxx/page.tsx (Server Component)
+export default async function Page({ params }: PageProps) {
+  const user = await getCurrentUser()
+  if (!user) redirect('/login')
+
+  const data = await getDataForUser(params.id)
+
+  return <Container data={data} currentUserId={user.id} />
+}
+```
+
+**メリット**:
+- 権限チェックが正確になる
+- UIレベルで不正な操作を防げる
+- サーバー側の認可チェックと整合性が取れる
+
 ---
 
 ## フロントエンド実装メモ（リーグ設定関連）
 
-- App Router の `params` はオブジェクト（`Promise` ではない）。`await params` しない。
+- App Router の `params` は `Promise`。使用前に必ず `await params` する。
 - サーバーアクションの戻り値型を再利用する（例: `Awaited<ReturnType<typeof getLeagueForUser>>`）。型をコンポーネントごとに再定義しない。
 - React Hook Form の配列は `useFieldArray` で扱い、`watch` で全体再レンダリングを誘発しない。
 - 送信中フラグは `form.formState.isSubmitting` を使い、独自 state を持たない。
