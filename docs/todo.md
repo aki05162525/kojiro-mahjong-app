@@ -68,22 +68,23 @@
 ## 現在進行中
 
 ### バックエンド機能実装
-- [ ] **節管理機能実装（0%完了）**
-  - [ ] Routes (RPC): 節の作成/取得/削除
+- [ ] **スコア入力・計算機能実装（0%完了）**
+  - [ ] Routes (RPC): スコア入力/取得/修正
   - [ ] Routes (OpenAPI): Swagger UI 対応
-  - [ ] Services: 節番号採番、卓割り当てロジック
+  - [ ] Services: 点数計算ロジック（scorePt, rank, rankPt, totalPt）
+  - [ ] Services: 同点処理（座順優先）、合計点バリデーション（100,000点）
   - [ ] Repositories: DB アクセス層
   - [ ] Validators: Zod スキーマ
   - [ ] OpenAPI Schemas
 
 ### フロントエンド UI 実装
-- [ ] **リーグ管理画面**
-  - [ ] リーグ詳細ページ（`/leagues/[id]`）
-  - [ ] 節作成ボタン（リーグ詳細ページヘッダー）
-  - [ ] 節一覧表示
+- [ ] **スコア入力画面**
+  - [ ] スコア入力フォーム
+  - [ ] リアルタイム計算表示
+  - [ ] 合計点バリデーション
 
 ### React Query フック作成
-- [ ] useSessions (節管理用)
+- [ ] useScores (スコア入力用)
 
 ## TODO (優先度順)
 
@@ -92,15 +93,6 @@
   - [ ] Routes (RPC): 卓の作成/取得/更新
   - [ ] Routes (OpenAPI): Swagger UI 対応
   - [ ] Services: 卓種別判定（first/upper/lower）、座順割り当て
-  - [ ] Repositories: DB アクセス層
-  - [ ] Validators: Zod スキーマ
-  - [ ] OpenAPI Schemas
-
-- [ ] **スコア入力・計算機能実装（0%完了）**
-  - [ ] Routes (RPC): スコア入力/取得/修正
-  - [ ] Routes (OpenAPI): Swagger UI 対応
-  - [ ] Services: 点数計算ロジック（scorePt, rank, rankPt, totalPt）
-  - [ ] Services: 同点処理（座順優先）、合計点バリデーション（100,000点）
   - [ ] Repositories: DB アクセス層
   - [ ] Validators: Zod スキーマ
   - [ ] OpenAPI Schemas
@@ -130,10 +122,6 @@
 - [ ] **節管理画面**
   - [ ] 卓割り当て画面
   - [ ] 座順表示
-- [ ] **スコア入力画面**
-  - [ ] スコア入力フォーム
-  - [ ] リアルタイム計算表示
-  - [ ] 合計点バリデーション
 - [ ] **ランキング表示画面**
   - [ ] リーグランキング一覧
   - [ ] 個人成績詳細
@@ -142,9 +130,6 @@
   - [ ] 最近の節一覧
 
 ### React Query フック作成
-- [x] useLeagues, useLeague, useCreateLeague, useUpdateLeague, useDeleteLeague, useUpdateLeagueStatus
-- [x] useUpdatePlayerName, useUpdatePlayerRole
-- [ ] useScores (スコア入力用)
 - [ ] useRanking (ランキング表示用)
 
 ### テスト・リリース
