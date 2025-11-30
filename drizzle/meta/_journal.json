@@ -15,6 +15,13 @@
       "when": 1762616704959,
       "tag": "0001_aspiring_may_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764473889365,
+      "tag": "0002_charming_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }
