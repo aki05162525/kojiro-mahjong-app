@@ -84,14 +84,46 @@
 ## 4. 実装手順 (TODO)
 
 ### Phase 1: バックエンド実装
-- [ ] `src/server/schemas/sessions.ts` 作成
-- [ ] `src/server/repositories/sessions.ts` 作成（DB操作）
-- [ ] `src/server/services/sessions.ts` 作成（マッチングロジック）
-- [ ] `src/server/routes/sessions.ts` 作成（エンドポイント定義）
-- [ ] `src/server/routes/index.ts` に登録
+- [ ] **Schema定義**: `src/server/schemas/sessions.ts`
+    - ZodスキーマとOpenAPI定義を作成
+- [ ] **Repository実装**: `src/server/repositories/sessions.ts`
+    - `createSessionTransaction`: トランザクション内での一括作成
+    - `findSessionsByLeagueId`: 関連データ（Table, Score, Player）を含めた取得
+- [ ] **Service実装**: `src/server/services/sessions.ts`
+    - `matchPlayers`: 第1節/第2節以降の振り分けロジック
+    - `createSession`: バリデーションとトランザクション呼び出し
+- [ ] **Route実装**: `src/server/routes/sessions.ts`
+    - OpenAPIHonoルート定義
+    - `src/server/routes/index.ts` への登録
 
-### Phase 2: フロントエンド実装
-- [ ] `src/client/hooks/useSessions.ts` 作成
-- [ ] `components/features/sessions/session-list.tsx` 作成
-- [ ] `components/features/sessions/create-session-dialog.tsx` 作成
-- [ ] リーグ詳細画面への組み込み
+### Phase 2: フロントエンド - ロジック実装
+- [ ] **型定義**: `src/types/session.ts`
+    - APIレスポンスに基づいた型定義 (RPCから推論も可だが明示的な型が必要な場合)
+- [ ] **API Client**: `src/client/api.ts` (もし個別のfetch関数が必要なら)
+- [ ] **React Query Hooks**: `src/client/hooks/useSessions.ts`
+    - `useLeagueSessions(leagueId)`: 節一覧取得
+    - `useCreateSession()`: 節作成 mutation (onSuccessでinvalidateQueries)
+
+### Phase 3: フロントエンド - UI実装
+
+#### 機能要件
+- [ ] **リーグ詳細画面 (`app/(dashboard)/leagues/[id]/page.tsx`)**
+    - **節作成ボタン**: 管理者権限を持つユーザーのみに表示される「節を作成」ボタンをページヘッダーに追加。
+    - **節一覧表示**: リーグに紐づく節（Session）の一覧を表示する。各節はセッション番号、作成日を含む。
+- [ ] **節作成ダイアログ (`components/features/sessions/create-session-dialog.tsx`)**
+    - 「節を作成」ボタンクリック時に表示されるモーダルダイアログ。
+    - 作成確認メッセージと、「作成」/「キャンセル」ボタンを持つ。
+    - 「作成」ボタン押下後、API呼び出し中はローディング状態を表示し、完了したらダイアログを閉じる。
+- [ ] **節詳細表示 (`components/features/sessions/session-list.tsx` 内)**
+    - 各節をアコーディオン形式などで展開・格納可能にする。
+    - 展開時に、その節に割り当てられた4つの卓（Table）の情報を表示する。
+    - 各卓には、割り当てられた4人のプレイヤー名と座順（東南西北）を表示する。
+
+#### 非機能要件
+- [ ] **レスポンシブデザイン**: スマートフォン、タブレット、PCなど、様々なデバイスで適切に表示・操作できること。
+- [ ] **ローディング表示**: API呼び出し中やデータ取得中には、ユーザーに視覚的なフィードバック（スピナーなど）を提供すること。
+- [ ] **エラーハンドリング**: API呼び出しが失敗した場合、ユーザーに分かりやすいエラーメッセージを表示すること。
+- [ ] **ユーザビリティ**:
+    - 「節を作成」ボタンの配置は直感的であること。
+    - 節一覧、卓情報の視認性が高いこと。
+- [ ] **パフォーマンス**: 節一覧の描画は高速に行われ、多くの節があってもスムーズにスクロールできること。
