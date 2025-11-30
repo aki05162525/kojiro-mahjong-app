@@ -56,19 +56,25 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
   // scoresが変更されたときに状態をリセット（別のテーブルに切り替わった場合など）
   useEffect(() => {
     setInputScores(
-      Object.fromEntries(sortedScores.map((s) => [s.id, s.finalScore?.toString() || ''])),
+      Object.fromEntries(
+        sortedScores.map((s) => [
+          s.id,
+          s.finalScore !== null ? (s.finalScore / 100).toString() : '',
+        ]),
+      ),
     )
   }, [sortedScores])
 
-  // 合計点チェック
+  // 合計点チェック（入力値を100倍して実際の点数に変換）
   const totalScore = useMemo(() => {
     return Object.values(inputScores).reduce((sum, val) => {
       const num = Number.parseInt(val, 10)
-      return sum + (Number.isNaN(num) ? 0 : num)
+      return sum + (Number.isNaN(num) ? 0 : num * 100)
     }, 0)
   }, [inputScores])
 
   const isValid = totalScore === 100000
+  const remainingScore = 100000 - totalScore
 
   const handleSubmit = async () => {
     if (!isValid) {
@@ -86,7 +92,7 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
         scores: {
           scores: sortedScores.map((s) => ({
             scoreId: s.id,
-            finalScore: Number.parseInt(inputScores[s.id], 10),
+            finalScore: Number.parseInt(inputScores[s.id], 10) * 100, // 100倍して実際の点数に変換
           })),
         },
       })
@@ -114,7 +120,8 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
         <DialogHeader>
           <DialogTitle>スコア入力</DialogTitle>
           <DialogDescription>
-            4人分の最終得点を入力してください。合計は100,000点である必要があります。
+            4人分の最終得点を入力してください（百の位まで）。合計は1,000（=
+            100,000点）である必要があります。
           </DialogDescription>
         </DialogHeader>
 
@@ -129,17 +136,33 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
                 className="col-span-2"
                 value={inputScores[score.id]}
                 onChange={(e) => setInputScores({ ...inputScores, [score.id]: e.target.value })}
-                placeholder="25000"
+                placeholder="250"
+                min="0"
+                max="2000"
+                step="1"
               />
-              <span className="text-sm text-muted-foreground">点</span>
+              <span className="text-sm text-muted-foreground">00点</span>
             </div>
           ))}
 
           <div className="flex items-center justify-between border-t pt-4">
             <span className="font-medium">合計:</span>
-            <span className={`font-bold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
-              {totalScore.toLocaleString()} 点
-            </span>
+            <div className="text-right">
+              <div className={`font-bold ${isValid ? 'text-green-600' : 'text-red-600'}`}>
+                {totalScore.toLocaleString()}点
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {remainingScore === 0 ? (
+                  <span className="text-green-600">✓ 合計100,000点</span>
+                ) : remainingScore > 0 ? (
+                  <span>残り: {remainingScore.toLocaleString()}点</span>
+                ) : (
+                  <span className="text-red-600">
+                    {Math.abs(remainingScore).toLocaleString()}点超過
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
