@@ -14,6 +14,7 @@ export const useUpdateScores = () => {
       scores,
     }: {
       tableId: string
+      leagueId: string
       scores: UpdateTableScoresInput
     }) => {
       const res = await apiClient.api.tables[':tableId'].scores.$put({
@@ -32,10 +33,9 @@ export const useUpdateScores = () => {
       }
       // 204 No Content は正常終了（ボディなし）
     },
-    onSuccess: () => {
-      // セッション一覧を再取得（スコアが更新されたため）
-      // 全てのリーグとセッションのキャッシュを無効化
-      queryClient.invalidateQueries({ queryKey: ['leagues'] })
+    onSuccess: (_data, variables) => {
+      // 特定のリーグのセッション情報のみを無効化（効率的なキャッシュ更新）
+      queryClient.invalidateQueries({ queryKey: ['leagues', variables.leagueId] })
     },
   })
 }

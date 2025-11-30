@@ -32,29 +32,3 @@ export async function findScoresByTableId(tableId: string) {
   })
   return scores
 }
-
-/**
- * スコアを更新（finalScore, scorePt, rank, rankPt, totalPt）
- */
-export async function updateScore(
-  scoreId: string,
-  data: {
-    finalScore: number
-    scorePt: string
-    rank: number
-    rankPt: number
-    totalPt: string
-  },
-) {
-  await db
-    .update(scoresTable)
-    .set({
-      finalScore: data.finalScore,
-      scorePt: data.scorePt,
-      rank: data.rank,
-      rankPt: data.rankPt,
-      totalPt: data.totalPt,
-      updatedAt: new Date(),
-    })
-    .where(eq(scoresTable.id, scoreId))
-}

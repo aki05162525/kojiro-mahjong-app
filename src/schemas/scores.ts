@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TOTAL_SCORE } from '@/src/constants/mahjong'
 
 /**
  * スコア入力データ（単一プレイヤー）
@@ -28,7 +29,7 @@ export const updateTableScoresSchema = z
   .refine(
     (data) => {
       const total = data.scores.reduce((sum, s) => sum + s.finalScore, 0)
-      return total === 100000
+      return total === TOTAL_SCORE
     },
     {
       message: '4人の合計点数は100,000点である必要があります',

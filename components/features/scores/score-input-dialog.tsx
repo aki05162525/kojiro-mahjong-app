@@ -15,11 +15,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { useUpdateScores } from '@/src/client/hooks/useScores'
+import { TOTAL_SCORE } from '@/src/constants/mahjong'
 import type { SessionScore } from '@/src/types/session'
 
 interface ScoreInputDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  leagueId: string
   tableId: string
   tableType: 'first' | 'upper' | 'lower'
   scores: SessionScore[]
@@ -39,12 +41,13 @@ const WIND_ORDER: Record<string, number> = {
   north: 3,
 }
 
-/**
- * 麻雀の配給原点（4人分の合計点数）
- */
-const TOTAL_SCORE = 100000
-
-export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreInputDialogProps) {
+export function ScoreInputDialog({
+  open,
+  onOpenChange,
+  leagueId,
+  tableId,
+  scores,
+}: ScoreInputDialogProps) {
   const router = useRouter()
   const { toast } = useToast()
   const updateScores = useUpdateScores()
@@ -93,6 +96,7 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
 
     try {
       await updateScores.mutateAsync({
+        leagueId,
         tableId,
         scores: {
           scores: sortedScores.map((s) => ({

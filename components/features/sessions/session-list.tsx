@@ -13,6 +13,7 @@ import type { Session } from '@/src/types/session'
 import { ScoreInputDialog } from '../scores/score-input-dialog'
 
 interface SessionListProps {
+  leagueId: string
   sessions: Session[]
 }
 
@@ -48,7 +49,7 @@ const WIND_ORDER: Record<string, number> = {
 /**
  * 節一覧コンポーネント
  */
-export function SessionList({ sessions }: SessionListProps) {
+export function SessionList({ leagueId, sessions }: SessionListProps) {
   const [selectedTable, setSelectedTable] = useState<{
     tableId: string
     tableType: 'first' | 'upper' | 'lower'
@@ -155,6 +156,7 @@ export function SessionList({ sessions }: SessionListProps) {
         <ScoreInputDialog
           open={!!selectedTable}
           onOpenChange={(open) => !open && setSelectedTable(null)}
+          leagueId={leagueId}
           tableId={selectedTable.tableId}
           tableType={selectedTable.tableType}
           scores={selectedTable.scores}
