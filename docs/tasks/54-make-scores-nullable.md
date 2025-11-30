@@ -105,12 +105,12 @@ export const createScoreSchema = z.object({
   tableId: z.string().uuid(),
   playerId: z.string().uuid(),
   wind: windSchema,
-  // スコア関連は全て optional
-  finalScore: z.number().int().optional(),
-  scorePt: z.number().optional(),
-  rank: z.number().int().min(1).max(4).optional(),
-  rankPt: z.number().int().optional(),
-  totalPt: z.number().optional(),
+  // スコア関連は全て nullish (undefined または null を許容)
+  finalScore: z.number().int().nullish(),
+  scorePt: z.number().nullish(),
+  rank: z.number().int().min(1).max(4).nullish(),
+  rankPt: z.number().int().nullish(),
+  totalPt: z.number().nullish(),
 })
 
 // スコア入力・更新時のスキーマ（全て必須）
@@ -146,12 +146,12 @@ type Score = InferSelectModel<typeof scoresTable>
 // 使用時の型ガード
 function calculateRanking(scores: Score[]) {
   // 未入力のスコアを除外
-  const validScores = scores.filter(score =>
+  const validScores = scores.filter((score): score is Score & { totalPt: number; rank: number } =>
     score.totalPt !== null && score.rank !== null
   )
 
-  // 型ガード後は number として扱える
-  return validScores.sort((a, b) => b.totalPt! - a.totalPt!)
+  // 型ガード後は number として扱える（非nullアサーション不要）
+  return validScores.sort((a, b) => b.totalPt - a.totalPt)
 }
 ```
 
@@ -195,9 +195,21 @@ export async function updateScore(scoreId: string, data: UpdateScoreInput) {
 
 // ランキング取得（未入力スコアを除外）
 export async function getValidScores(sessionId: string) {
+  // sessionId に紐づく table の ID一覧を取得
+  const tables = await db.query.tablesTable.findMany({
+    where: eq(tablesTable.sessionId, sessionId),
+    columns: { id: true },
+  })
+  const tableIds = tables.map((t) => t.id)
+
+  if (tableIds.length === 0) {
+    return []
+  }
+
+  // tableId で scores を絞り込む
   return await db.query.scoresTable.findMany({
     where: and(
-      eq(scoresTable.sessionId, sessionId),
+      inArray(scoresTable.tableId, tableIds),
       isNotNull(scoresTable.totalPt), // ← 未入力を除外
     ),
     orderBy: desc(scoresTable.totalPt),
@@ -215,14 +227,21 @@ export async function getValidScores(sessionId: string) {
 
 **例**:
 ```typescript
-// ランキング取得時
-const scores = await db.query.scoresTable.findMany({
-  where: and(
-    eq(scoresTable.leagueId, leagueId),
+// ランキング取得時 (JOINを使用)
+const scores = await db
+  .select({
+    score: scoresTable,
+    table: tablesTable,
+    session: sessionsTable,
+  })
+  .from(scoresTable)
+  .innerJoin(tablesTable, eq(scoresTable.tableId, tablesTable.id))
+  .innerJoin(sessionsTable, eq(tablesTable.sessionId, sessionsTable.id))
+  .where(and(
+    eq(sessionsTable.leagueId, leagueId),
     isNotNull(scoresTable.totalPt),  // ← 未入力を除外
-  ),
-  orderBy: desc(scoresTable.totalPt),
-})
+  ))
+  .orderBy(desc(scoresTable.totalPt))
 ```
 
 ---
@@ -289,14 +308,17 @@ column: integer('column').notNull()
 column: integer('column')
 ```
 
-### Zod - Optional vs Nullable
+### Zod - Optional vs Nullable vs Nullish
 ```typescript
-// optional: フィールド自体が存在しなくてもOK
+// optional: フィールド自体が存在しなくてもOK (undefined)
 field: z.number().optional()
 
 // nullable: フィールドは存在するがnull可
 field: z.number().nullable()
 
-// 両方対応
-field: z.number().optional().nullable()
+// nullish: undefined または null を許容 (.optional().nullable() のショートハンド)
+field: z.number().nullish()
+
+// 推奨: DB の Nullable カラムには .nullish() を使用
+field: z.number().int().nullish()
 ```
