@@ -55,3 +55,15 @@ export const NotFoundResponse = {
   },
   description: 'リソースが見つかりません',
 }
+
+/**
+ * Bad request error response (reusable)
+ */
+export const BadRequestResponse = {
+  content: {
+    'application/json': {
+      schema: ErrorSchema,
+    },
+  },
+  description: '不正なリクエスト - バリデーションエラー',
+}

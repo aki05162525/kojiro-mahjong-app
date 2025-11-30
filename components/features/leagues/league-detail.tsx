@@ -1,19 +1,39 @@
-import { ArrowLeft, Settings } from 'lucide-react'
+import { ArrowLeft, Plus, Settings } from 'lucide-react'
 import Link from 'next/link'
+import { SessionList } from '@/components/features/sessions/session-list'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { getLeagueForUser } from '@/src/server/actions/leagues'
+import type { Session } from '@/src/types/session'
 
 interface LeagueDetailProps {
   league: Awaited<ReturnType<typeof getLeagueForUser>>
+  currentUserId: string
   onSettingsClick: () => void
+  onCreateSessionClick: () => void
+  sessions: Session[]
+  isSessionsLoading: boolean
+  sessionsError: Error | null
 }
 
 /**
  * リーグ詳細の表示コンポーネント（Presentational）
  * 純粋な表示ロジックのみを担当
  */
-export function LeagueDetail({ league, onSettingsClick }: LeagueDetailProps) {
+export function LeagueDetail({
+  league,
+  currentUserId,
+  onSettingsClick,
+  onCreateSessionClick,
+  sessions,
+  isSessionsLoading,
+  sessionsError,
+}: LeagueDetailProps) {
+  // 管理者かどうかを判定（現在のユーザーが管理者ロールを持つか）
+  const isAdmin = league.players.some(
+    (player) => player.userId === currentUserId && player.role === 'admin',
+  )
   // ステータスバッジのスタイル
   const getStatusBadge = (status: string) => {
     const baseClasses = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium'
@@ -90,7 +110,7 @@ export function LeagueDetail({ league, onSettingsClick }: LeagueDetailProps) {
         </Card>
 
         {/* プレイヤー一覧 */}
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle>プレイヤー一覧</CardTitle>
             <CardDescription>{league.players.length}人のプレイヤー</CardDescription>
@@ -113,6 +133,37 @@ export function LeagueDetail({ league, onSettingsClick }: LeagueDetailProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* 節一覧 */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">節一覧</h2>
+            {isAdmin && (
+              <Button onClick={onCreateSessionClick} className="gap-2">
+                <Plus className="h-4 w-4" />
+                節を作成
+              </Button>
+            )}
+          </div>
+
+          {isSessionsLoading ? (
+            <Card>
+              <CardContent className="py-8">
+                <div className="flex justify-center">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent" />
+                </div>
+              </CardContent>
+            </Card>
+          ) : sessionsError ? (
+            <Alert variant="destructive">
+              <AlertDescription>
+                節一覧の取得に失敗しました: {sessionsError.message}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <SessionList sessions={sessions} />
+          )}
+        </div>
       </div>
     </div>
   )

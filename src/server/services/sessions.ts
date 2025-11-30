@@ -1,4 +1,5 @@
 import type { Wind } from '@/src/schemas/sessions'
+import { BadRequestError } from '../middleware/error-handler'
 import {
   createSessionTransaction,
   findPlayersByLeagueId,
@@ -146,7 +147,7 @@ export async function createSession(leagueId: string, userId: string) {
     const players = await findPlayersByLeagueId(leagueId)
 
     if (players.length !== 16) {
-      throw new Error('第1節の作成にはプレイヤーが16名必要です')
+      throw new BadRequestError('第1節の作成にはプレイヤーが16名必要です')
     }
 
     tables = matchPlayersForFirstSession(players)
@@ -155,7 +156,7 @@ export async function createSession(leagueId: string, userId: string) {
     const previousSession = await findPreviousSession(leagueId, sessionNumber)
 
     if (!previousSession) {
-      throw new Error('前節の情報が見つかりません')
+      throw new BadRequestError('前節の情報が見つかりません')
     }
 
     // 前節のスコアがすべて入力されているかチェック
@@ -164,7 +165,7 @@ export async function createSession(leagueId: string, userId: string) {
     )
 
     if (!allScoresEntered) {
-      throw new Error('前節のスコアがすべて入力されていません')
+      throw new BadRequestError('前節のスコアがすべて入力されていません')
     }
 
     tables = matchPlayersForNextSession(previousSession)

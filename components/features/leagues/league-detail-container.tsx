@@ -1,22 +1,26 @@
 'use client'
 
 import { useState } from 'react'
+import { CreateSessionDialog } from '@/components/features/sessions/create-session-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useLeague } from '@/src/client/hooks/useLeagues'
+import { useLeagueSessions } from '@/src/client/hooks/useSessions'
 import type { getLeagueForUser } from '@/src/server/actions/leagues'
 import { LeagueDetail } from './league-detail'
 import { LeagueSettingsDialog } from './league-settings-dialog'
 
 type LeagueDetailContainerProps = {
   initialData: Awaited<ReturnType<typeof getLeagueForUser>>
+  currentUserId: string
 }
 
 /**
  * リーグ詳細のコンテナコンポーネント（Container）
  * データ取得とロジックを担当
  */
-export function LeagueDetailContainer({ initialData }: LeagueDetailContainerProps) {
+export function LeagueDetailContainer({ initialData, currentUserId }: LeagueDetailContainerProps) {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false)
+  const [isCreateSessionDialogOpen, setIsCreateSessionDialogOpen] = useState(false)
 
   // React Query で初期データを使いつつ、バックグラウンドで再検証
   const { data, isLoading, error } = useLeague(initialData.id, {
@@ -25,8 +29,22 @@ export function LeagueDetailContainer({ initialData }: LeagueDetailContainerProp
   })
   const leagueData = data ?? initialData
 
+  // セッション一覧を取得
+  const {
+    data: sessionsData,
+    isLoading: isSessionsLoading,
+    error: sessionsError,
+  } = useLeagueSessions(initialData.id)
+
+  const sessions = sessionsData?.sessions ?? []
+  const nextSessionNumber = sessions.length + 1
+
   const handleSettingsClick = () => {
     setIsSettingsDialogOpen(true)
+  }
+
+  const handleCreateSessionClick = () => {
+    setIsCreateSessionDialogOpen(true)
   }
 
   // ローディング中（初回は initialData があるので表示されない）
@@ -54,11 +72,25 @@ export function LeagueDetailContainer({ initialData }: LeagueDetailContainerProp
 
   return (
     <>
-      <LeagueDetail league={leagueData} onSettingsClick={handleSettingsClick} />
+      <LeagueDetail
+        league={leagueData}
+        currentUserId={currentUserId}
+        onSettingsClick={handleSettingsClick}
+        onCreateSessionClick={handleCreateSessionClick}
+        sessions={sessions}
+        isSessionsLoading={isSessionsLoading}
+        sessionsError={sessionsError}
+      />
       <LeagueSettingsDialog
         open={isSettingsDialogOpen}
         onOpenChange={setIsSettingsDialogOpen}
         league={leagueData}
+      />
+      <CreateSessionDialog
+        open={isCreateSessionDialogOpen}
+        onOpenChange={setIsCreateSessionDialogOpen}
+        leagueId={leagueData.id}
+        sessionNumber={nextSessionNumber}
       />
     </>
   )
