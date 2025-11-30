@@ -369,6 +369,37 @@ export const CreateLeagueRequestSchema = createLeagueSchema
   .openapi('CreateLeagueRequest')
 ```
 
+### スキーマ定義の DRY 原則
+
+**OpenAPI スキーマでのベーススキーマ再利用**:
+- `src/server/openapi/schemas/` や `src/server/schemas/` では、バリデーションロジックを重複定義しない
+- `src/schemas/` のベーススキーマを import し、`.openapi()` でメタデータを追加する
+- `.refine()` などの複雑なバリデーションロジックは必ずベーススキーマに定義し、OpenAPI スキーマでは `.extend()` で拡張のみ行う
+
+```typescript
+// ❌ Bad - バリデーションロジックを重複定義
+export const UpdateRequestSchema = z
+  .object({ scores: z.array(...).length(4) })
+  .refine((data) => { /* 重複したロジック */ })
+  .openapi('UpdateRequest')
+
+// ✅ Good - ベーススキーマを再利用
+import { updateTableScoresSchema } from '@/src/schemas/scores'
+
+export const UpdateRequestSchema = updateTableScoresSchema
+  .extend({
+    scores: z.array(ScoreInputSchema).length(4).openapi({
+      description: '...',
+    }),
+  })
+  .openapi('UpdateRequest')
+```
+
+**メリット**:
+- バリデーションルールの Single Source of Truth を維持
+- フロント・バック間でのスキーマ drift を防止
+- 将来の変更時、修正箇所が一箇所に限定される
+
 ### TypeScript 型定義の共通化
 
 **`src/types/` に配置**:
@@ -546,6 +577,102 @@ const onSubmit = async (data) => {
 7. `src/types/` に型定義追加
 8. React Query hook 作成
 9. UI コンポーネント実装
+
+---
+
+## React コーディングベストプラクティス
+
+### 配列の不変性
+
+**props として受け取った配列を直接 mutate しない**:
+- `.sort()`, `.reverse()`, `.splice()` などの破壊的メソッドを使う前に、必ず配列のコピーを作成する
+- スプレッド構文 `[...array]` または `.slice()` を使用してコピーを作成
+
+```typescript
+// ❌ Bad - props を直接変更
+{session.tables
+  .sort((a, b) => a.tableNumber - b.tableNumber)
+  .map((table) => ...)}
+
+// ✅ Good - コピーを作成してからソート
+{[...session.tables]
+  .sort((a, b) => a.tableNumber - b.tableNumber)
+  .map((table) => ...)}
+```
+
+**理由**: React の不変性原則に違反すると、予期しない副作用やバグの原因となる
+
+### state 更新のベストプラクティス
+
+**useState の関数更新フォームを使用する**:
+- オブジェクトや配列の部分更新を行う場合、関数更新フォームを使用する
+- クロージャによる古い state 参照を防ぐ
+
+```typescript
+// ❌ Bad - クロージャで古い state を参照する可能性
+onChange={(e) => setState({ ...state, [id]: e.target.value })}
+
+// ✅ Good - 関数更新フォームで最新の state を参照
+onChange={(e) => setState((current) => ({ ...current, [id]: e.target.value }))}
+```
+
+**メリット**:
+- 常に最新の state を参照できる
+- React のバッチ処理と安全に連携できる
+- パフォーマンス最適化にも有利
+
+### マジックナンバーの定数化
+
+**繰り返し使用される数値は定数として定義する**:
+- 同じ数値リテラルが複数箇所（3箇所以上）で使用される場合、コンポーネント/モジュールのトップレベルで定数として定義する
+- 定数名はその意味を明確に表現する
+
+```typescript
+// ❌ Bad - マジックナンバーが複数箇所に散在
+const isValid = totalScore === 100000
+const remainingScore = 100000 - totalScore
+description: '合計点数は100,000点である必要があります'
+
+// ✅ Good - 定数として一箇所で定義
+const TOTAL_SCORE = 100000
+
+const isValid = totalScore === TOTAL_SCORE
+const remainingScore = TOTAL_SCORE - totalScore
+description: `合計点数は${TOTAL_SCORE.toLocaleString()}点である必要があります`
+```
+
+**メリット**:
+- 可読性と保守性の向上
+- 値の変更時、修正箇所が一箇所に限定される
+- 数値の意味が明確になる
+
+---
+
+## データベース操作のベストプラクティス
+
+### トランザクションの使用
+
+**複数の関連する DB 更新はトランザクションで囲む**:
+- ループ内で複数の UPDATE/INSERT を実行する場合、必ず `db.transaction()` で囲む
+- 部分的な更新が残ることでデータ不整合が発生するのを防ぐ
+
+```typescript
+// ❌ Bad - ループ内の個別更新（途中でエラーが発生すると部分更新が残る）
+for (const item of items) {
+  await repository.updateScore(item.id, { ... })
+}
+
+// ✅ Good - トランザクション内で実行
+await db.transaction(async (tx) => {
+  for (const item of items) {
+    await tx.update(scoresTable)
+      .set({ ... })
+      .where(eq(scoresTable.id, item.id))
+  }
+})
+```
+
+**重要**: トランザクション内では repository メソッドではなく、`tx` オブジェクトを使用して直接 Drizzle ORM のメソッドを呼び出す
 
 ---
 

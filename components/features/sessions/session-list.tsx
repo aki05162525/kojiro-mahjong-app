@@ -78,7 +78,7 @@ export function SessionList({ sessions }: SessionListProps) {
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
-                {session.tables
+                {[...session.tables]
                   .sort((a, b) => a.tableNumber - b.tableNumber)
                   .map((table) => {
                     const allScoresEntered = table.scores.every((s) => s.rank !== null)
@@ -99,7 +99,7 @@ export function SessionList({ sessions }: SessionListProps) {
                         <AccordionContent>
                           <div className="space-y-4">
                             <div className="grid gap-2 sm:grid-cols-2">
-                              {table.scores
+                              {[...table.scores]
                                 .sort((a, b) => WIND_ORDER[a.wind] - WIND_ORDER[b.wind])
                                 .map((score) => (
                                   <div

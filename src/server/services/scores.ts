@@ -1,3 +1,6 @@
+import { eq } from 'drizzle-orm'
+import { db } from '@/db'
+import { scoresTable } from '@/db/schema/scores'
 import type { UpdateTableScoresInput } from '@/src/schemas/scores'
 import type { Wind } from '@/src/schemas/sessions'
 import { BadRequestError } from '../middleware/error-handler'
@@ -98,24 +101,29 @@ export async function updateTableScores(tableId: string, input: UpdateTableScore
   })
   const ranks = calculateRanks(scoresWithWind)
 
-  // 4. 各スコアを計算・更新
-  for (const scoreInput of input.scores) {
-    const finalScore = scoreInput.finalScore
-    const rank = ranks.get(scoreInput.scoreId)
-    if (rank === undefined) {
-      throw new BadRequestError(`順位の計算に失敗しました: ${scoreInput.scoreId}`)
+  // 4. 各スコアを計算・更新（トランザクション内で実行）
+  await db.transaction(async (tx) => {
+    for (const scoreInput of input.scores) {
+      const finalScore = scoreInput.finalScore
+      const rank = ranks.get(scoreInput.scoreId)
+      if (rank === undefined) {
+        throw new BadRequestError(`順位の計算に失敗しました: ${scoreInput.scoreId}`)
+      }
+
+      const scorePt = calculateScorePt(finalScore)
+      const rankPt = calculateRankPt(rank, table.tableType)
+      const totalPt = calculateTotalPt(rankPt, scorePt)
+
+      await tx
+        .update(scoresTable)
+        .set({
+          finalScore,
+          scorePt: scorePt.toFixed(1), // 小数点1桁
+          rank,
+          rankPt,
+          totalPt: totalPt.toFixed(1), // 小数点1桁
+        })
+        .where(eq(scoresTable.id, scoreInput.scoreId))
     }
-
-    const scorePt = calculateScorePt(finalScore)
-    const rankPt = calculateRankPt(rank, table.tableType)
-    const totalPt = calculateTotalPt(rankPt, scorePt)
-
-    await scoresRepository.updateScore(scoreInput.scoreId, {
-      finalScore,
-      scorePt: scorePt.toFixed(1), // 小数点1桁
-      rank,
-      rankPt,
-      totalPt: totalPt.toFixed(1), // 小数点1桁
-    })
-  }
+  })
 }

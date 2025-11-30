@@ -39,6 +39,11 @@ const WIND_ORDER: Record<string, number> = {
   north: 3,
 }
 
+/**
+ * 麻雀の配給原点（4人分の合計点数）
+ */
+const TOTAL_SCORE = 100000
+
 export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreInputDialogProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -73,15 +78,15 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
     }, 0)
   }, [inputScores])
 
-  const isValid = totalScore === 100000
-  const remainingScore = 100000 - totalScore
+  const isValid = totalScore === TOTAL_SCORE
+  const remainingScore = TOTAL_SCORE - totalScore
 
   const handleSubmit = async () => {
     if (!isValid) {
       toast({
         variant: 'destructive',
         title: '入力エラー',
-        description: '合計点数は100,000点である必要があります',
+        description: `合計点数は${TOTAL_SCORE.toLocaleString()}点である必要があります`,
       })
       return
     }
@@ -121,7 +126,7 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
           <DialogTitle>スコア入力</DialogTitle>
           <DialogDescription>
             4人分の最終得点を入力してください（百の位まで）。合計は1,000（=
-            100,000点）である必要があります。
+            {TOTAL_SCORE.toLocaleString()}点）である必要があります。
           </DialogDescription>
         </DialogHeader>
 
@@ -135,7 +140,12 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
                 type="number"
                 className="col-span-2"
                 value={inputScores[score.id]}
-                onChange={(e) => setInputScores({ ...inputScores, [score.id]: e.target.value })}
+                onChange={(e) =>
+                  setInputScores((currentScores) => ({
+                    ...currentScores,
+                    [score.id]: e.target.value,
+                  }))
+                }
                 placeholder="250"
                 min="0"
                 max="2000"
@@ -153,7 +163,7 @@ export function ScoreInputDialog({ open, onOpenChange, tableId, scores }: ScoreI
               </div>
               <div className="text-xs text-muted-foreground">
                 {remainingScore === 0 ? (
-                  <span className="text-green-600">✓ 合計100,000点</span>
+                  <span className="text-green-600">✓ 合計{TOTAL_SCORE.toLocaleString()}点</span>
                 ) : remainingScore > 0 ? (
                   <span>残り: {remainingScore.toLocaleString()}点</span>
                 ) : (

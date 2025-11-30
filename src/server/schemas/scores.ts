@@ -18,6 +18,7 @@ export const ScoreInputSchema = z
 
 /**
  * テーブルスコア更新リクエスト（OpenAPI 用）
+ * バリデーションロジックはベーススキーマ（src/schemas/scores.ts）と同じ
  */
 export const UpdateTableScoresRequestSchema = z
   .object({
