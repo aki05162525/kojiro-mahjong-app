@@ -68,20 +68,10 @@ function matchPlayersForNextSession(
       .sort((a, b) => a.rank - b.rank)
 
     // 上位2名（1位・2位）
-    if (sortedScores[0]) {
-      upperPlayers.push(sortedScores[0].playerId)
-    }
-    if (sortedScores[1]) {
-      upperPlayers.push(sortedScores[1].playerId)
-    }
+    upperPlayers.push(sortedScores[0].playerId, sortedScores[1].playerId)
 
     // 下位2名（3位・4位）
-    if (sortedScores[2]) {
-      lowerPlayers.push(sortedScores[2].playerId)
-    }
-    if (sortedScores[3]) {
-      lowerPlayers.push(sortedScores[3].playerId)
-    }
+    lowerPlayers.push(sortedScores[2].playerId, sortedScores[3].playerId)
   }
 
   // シャッフル

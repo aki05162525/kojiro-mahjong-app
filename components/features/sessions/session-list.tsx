@@ -33,6 +33,16 @@ const TABLE_TYPE_LABELS: Record<string, string> = {
 }
 
 /**
+ * 風の順序（ソート用）
+ */
+const WIND_ORDER: Record<string, number> = {
+  east: 0,
+  south: 1,
+  west: 2,
+  north: 3,
+}
+
+/**
  * 節一覧コンポーネント
  */
 export function SessionList({ sessions }: SessionListProps) {
@@ -73,18 +83,7 @@ export function SessionList({ sessions }: SessionListProps) {
                     <AccordionContent>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {table.scores
-                          .sort((a, b) => {
-                            const windOrder = {
-                              east: 0,
-                              south: 1,
-                              west: 2,
-                              north: 3,
-                            }
-                            return (
-                              windOrder[a.wind as keyof typeof windOrder] -
-                              windOrder[b.wind as keyof typeof windOrder]
-                            )
-                          })
+                          .sort((a, b) => WIND_ORDER[a.wind] - WIND_ORDER[b.wind])
                           .map((score) => (
                             <div
                               key={score.id}

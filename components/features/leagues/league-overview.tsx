@@ -1,6 +1,7 @@
 import { Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getStatusBadge, getStatusLabel } from '@/src/client/utils/leagueUtils'
 import type { getLeagueForUser } from '@/src/server/actions/leagues'
 
 interface LeagueOverviewProps {
@@ -14,31 +15,6 @@ export function LeagueOverview({ league, currentUserId, onSettingsClick }: Leagu
   const isAdmin = league.players.some(
     (player) => player.userId === currentUserId && player.role === 'admin',
   )
-
-  const getStatusBadge = (status: string) => {
-    const baseClasses = 'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium'
-    switch (status) {
-      case 'active':
-        return `${baseClasses} bg-[hsl(var(--ds-status-info-light))] text-[hsl(var(--ds-status-info))]`
-      case 'completed':
-        return `${baseClasses} bg-[hsl(var(--ds-status-success-light))] text-[hsl(var(--ds-status-success))]`
-      default:
-        return `${baseClasses} bg-muted text-muted-foreground`
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '進行中'
-      case 'completed':
-        return '完了'
-      case 'deleted':
-        return '削除済み'
-      default:
-        return status
-    }
-  }
 
   return (
     <>

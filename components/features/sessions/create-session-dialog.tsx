@@ -1,7 +1,6 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,11 +32,8 @@ export function CreateSessionDialog({
   const router = useRouter()
   const { toast } = useToast()
   const createSession = useCreateSession()
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleCreate = async () => {
-    setIsSubmitting(true)
-
     try {
       await createSession.mutateAsync(leagueId)
 
@@ -55,8 +51,6 @@ export function CreateSessionDialog({
         title: '節の作成に失敗しました',
         description: error instanceof Error ? error.message : 'もう一度お試しください',
       })
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
@@ -84,12 +78,12 @@ export function CreateSessionDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
+            disabled={createSession.isPending}
           >
             キャンセル
           </Button>
-          <Button type="button" onClick={handleCreate} disabled={isSubmitting}>
-            {isSubmitting ? '作成中...' : '作成'}
+          <Button type="button" onClick={handleCreate} disabled={createSession.isPending}>
+            {createSession.isPending ? '作成中...' : '作成'}
           </Button>
         </DialogFooter>
       </DialogContent>
