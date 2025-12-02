@@ -52,7 +52,7 @@ export function LeagueSessionsTab({
           <AlertDescription>節一覧の取得に失敗しました: {sessionsError.message}</AlertDescription>
         </Alert>
       ) : (
-        <SessionList sessions={sessions} />
+        <SessionList leagueId={league.id} sessions={sessions} />
       )}
     </div>
   )

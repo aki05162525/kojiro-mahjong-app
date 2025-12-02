@@ -3,6 +3,7 @@ import { OpenAPIHono } from '@hono/zod-openapi'
 import { errorHandler } from '../middleware/error-handler'
 import leaguesRoutes from './leagues'
 import playersRoutes from './players'
+import scoresRoutes from './scores'
 import sessionsRoutes from './sessions'
 
 const app = new OpenAPIHono().basePath('/api')
@@ -20,10 +21,12 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'Bearer', {
 
 // OpenAPIルートを定義
 // ★ playersRoutes と sessionsRoutes は /leagues/:leagueId/* のパスを持つため、/leagues でマウント
+// ★ scoresRoutes は /tables/:tableId/* のパスを持つため、/tables でマウント
 const routes = app
   .route('/leagues', leaguesRoutes)
   .route('/leagues', playersRoutes)
   .route('/leagues', sessionsRoutes)
+  .route('/tables', scoresRoutes)
 
 // ★ RPC用の型をエクスポート（フロントエンドで使用）
 // 注意: ドキュメントルート(/doc, /ui)を追加する前にエクスポートし、純粋なAPIエンドポイントの型のみを提供

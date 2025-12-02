@@ -127,7 +127,7 @@ const getLeagueRoute = createRoute({
 
 app.openapi(getLeagueRoute, async (c) => {
   const userId = c.get('userId')
-  const leagueId = c.req.param('id')
+  const { id: leagueId } = c.req.valid('param')
   const league = await leaguesService.getLeagueById(leagueId, userId)
   return c.json(league, 200)
 })
@@ -182,7 +182,7 @@ const updateLeagueRoute = createRoute({
 
 app.openapi(updateLeagueRoute, async (c) => {
   const userId = c.get('userId')
-  const leagueId = c.req.param('id')
+  const { id: leagueId } = c.req.valid('param')
   const data = c.req.valid('json')
   const league = await leaguesService.updateLeague(leagueId, userId, data)
   return c.json(league, 200)
@@ -225,7 +225,7 @@ const deleteLeagueRoute = createRoute({
 
 app.openapi(deleteLeagueRoute, async (c) => {
   const userId = c.get('userId')
-  const leagueId = c.req.param('id')
+  const { id: leagueId } = c.req.valid('param')
   await leaguesService.deleteLeague(leagueId, userId)
   return c.body(null, 204)
 })
@@ -280,7 +280,7 @@ const updateLeagueStatusRoute = createRoute({
 
 app.openapi(updateLeagueStatusRoute, async (c) => {
   const userId = c.get('userId')
-  const leagueId = c.req.param('id')
+  const { id: leagueId } = c.req.valid('param')
   const { status } = c.req.valid('json')
   const league = await leaguesService.updateLeagueStatus(leagueId, userId, status)
   return c.json(league, 200)
